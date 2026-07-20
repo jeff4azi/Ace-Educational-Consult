@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import AceLogo from './assets/Ace-Educational-Consult-Logo.png'
 
 function App() {
   const [scrolled, setScrolled] = useState(false)
@@ -109,10 +110,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollToSection('home')}>
-              <div className="w-10 h-10 bg-[#4169E1] rounded-xl flex items-center justify-center">
-                <i className="fas fa-graduation-cap text-white text-xl"></i>
-              </div>
-              <span className="font-bold text-xl text-[#4169E1]">Ace Educational Consult</span>
+              <img src={AceLogo} alt="Ace Educational Consult Logo" className="h-16 object-contain" />
             </div>
             <div className="hidden md:flex items-center gap-8">
               <button onClick={() => scrollToSection('home')} className="text-gray-700 hover:text-[#4169E1] font-medium transition-colors">Home</button>
@@ -405,10 +403,7 @@ function App() {
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-[#4169E1] rounded-xl flex items-center justify-center">
-                  <i className="fas fa-graduation-cap text-white text-xl"></i>
-                </div>
-                <span className="font-bold text-xl">Ace Educational Consult</span>
+                <img src={AceLogo} alt="Ace Educational Consult Logo" className="h-16 object-contain" />
               </div>
               <p className="text-gray-400 mb-6">Your trusted partner for educational and digital services in Nigeria.</p>
               <div className="flex gap-4">
