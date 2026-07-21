@@ -16,9 +16,18 @@ export default function ServiceForm() {
     image: null,
     additionalInfo: '',
   });
+  const [imagePreview, setImagePreview] = useState(null);
 
   const handleImageChange = (e) => {
-    setForm({ ...form, image: e.target.files[0] });
+    const file = e.target.files[0];
+    if (file) {
+      setForm({ ...form, image: file });
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreview(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -114,8 +123,15 @@ export default function ServiceForm() {
                 onChange={handleImageChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
               />
-              {form.image && (
-                <p className="text-sm text-green-600 mt-2">{form.image.name} selected</p>
+              {imagePreview && (
+                <div className="mt-4">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full max-h-64 object-contain rounded-xl border border-gray-200"
+                  />
+                  <p className="text-sm text-gray-600 mt-2">{form.image?.name}</p>
+                </div>
               )}
             </div>
             <div>
