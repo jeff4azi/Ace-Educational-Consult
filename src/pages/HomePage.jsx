@@ -6,6 +6,7 @@ import AceLogo from '../assets/Ace-Educational-Consult-Logo.png';
 export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const statsRef = useRef(null);
   const navigate = useNavigate();
   const {
@@ -115,7 +116,7 @@ export default function HomePage() {
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-lg' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollToSection('home')}>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => { scrollToSection('home'); setMobileMenuOpen(false); }}>
               <img src={AceLogo} alt="Ace Educational Consult Logo" className="h-16 object-contain" />
             </div>
             <div className="hidden md:flex items-center gap-8">
@@ -126,11 +127,27 @@ export default function HomePage() {
               <button onClick={() => scrollToSection('contact')} className="text-gray-700 hover:text-[#4169E1] font-medium transition-colors">Contact</button>
               <button onClick={() => scrollToSection('contact')} className="bg-[#4169E1] hover:bg-[#3658c9] text-white px-6 py-2.5 rounded-full font-semibold transition-all hover:shadow-lg hover:scale-105">Get Started</button>
             </div>
-            <button className="md:hidden text-gray-700 text-2xl">
-              <i className="fas fa-bars"></i>
+            <button 
+              className="md:hidden text-gray-700 text-2xl"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'}`}></i>
             </button>
           </div>
         </div>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t">
+            <div className="px-4 py-4 space-y-3">
+              <button onClick={() => { scrollToSection('home'); setMobileMenuOpen(false); }} className="block w-full text-left text-gray-700 hover:text-[#4169E1] font-medium transition-colors py-2">Home</button>
+              <button onClick={() => { scrollToSection('services'); setMobileMenuOpen(false); }} className="block w-full text-left text-gray-700 hover:text-[#4169E1] font-medium transition-colors py-2">Services</button>
+              <button onClick={() => { scrollToSection('why-us'); setMobileMenuOpen(false); }} className="block w-full text-left text-gray-700 hover:text-[#4169E1] font-medium transition-colors py-2">Why Us</button>
+              <button onClick={() => { scrollToSection('testimonials'); setMobileMenuOpen(false); }} className="block w-full text-left text-gray-700 hover:text-[#4169E1] font-medium transition-colors py-2">Testimonials</button>
+              <button onClick={() => { scrollToSection('contact'); setMobileMenuOpen(false); }} className="block w-full text-left text-gray-700 hover:text-[#4169E1] font-medium transition-colors py-2">Contact</button>
+              <button onClick={() => { scrollToSection('contact'); setMobileMenuOpen(false); }} className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white px-6 py-3 rounded-full font-semibold transition-all hover:shadow-lg">Get Started</button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Success Message */}

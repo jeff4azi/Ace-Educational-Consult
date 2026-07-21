@@ -13,9 +13,22 @@ export default function ServicesManager() {
     image: '',
     fields: []
   });
+  const [imagePreview, setImagePreview] = useState('');
   const [newField, setNewField] = useState({ name: '', type: 'text', required: false });
 
   const categories = Object.keys(services);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFormData(prev => ({ ...prev, image: event.target.result }));
+        setImagePreview(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddField = () => {
     if (newField.name) {
@@ -44,11 +57,13 @@ export default function ServicesManager() {
     setShowModal(false);
     setEditingService(null);
     setFormData({ name: '', price: '', description: '', image: '', fields: [] });
+    setImagePreview('');
   };
 
   const handleEdit = (service) => {
     setEditingService(service);
     setFormData(service);
+    setImagePreview(service.image);
     setShowModal(true);
   };
 
@@ -119,7 +134,7 @@ export default function ServicesManager() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-900">{editingService ? 'Edit Service' : 'Add New Service'}</h3>
-              <button onClick={() => { setShowModal(false); setEditingService(null); setFormData({ name: '', price: '', description: '', image: '', fields: [] }); }} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+              <button onClick={() => { setShowModal(false); setEditingService(null); setFormData({ name: '', price: '', description: '', image: '', fields: [] }); setImagePreview(''); }} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
@@ -163,13 +178,22 @@ export default function ServicesManager() {
                 ></textarea>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Service Image</label>
                 <input
-                  type="url"
-                  value={formData.image}
-                  onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                 />
+                {imagePreview && (
+                  <div className="mt-4">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-full max-h-64 object-contain rounded-xl border border-gray-200" 
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Custom Fields</label>
@@ -206,7 +230,7 @@ export default function ServicesManager() {
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => { setShowModal(false); setEditingService(null); setFormData({ name: '', price: '', description: '', image: '', fields: [] }); }}
+                  onClick={() => { setShowModal(false); setEditingService(null); setFormData({ name: '', price: '', description: '', image: '', fields: [] }); setImagePreview(''); }}
                   className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
                 >
                   Cancel
