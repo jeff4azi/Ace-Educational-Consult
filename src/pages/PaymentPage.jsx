@@ -1,21 +1,24 @@
-import { useNavigate } from 'react-router-dom';
-import { useOrder } from '../contexts/OrderContext';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAdmin } from '../contexts/AdminContext';
 import AceLogo from '../assets/Ace-Educational-Consult-Logo.png';
 
 export default function PaymentPage() {
   const navigate = useNavigate();
-  const { selectedService, formData, orderId } = useOrder();
+  const location = useLocation();
+  const { siteSettings } = useAdmin();
 
-  if (!selectedService || !formData || !orderId) {
+  const { orderId, service, formData } = location.state || {};
+
+  if (!orderId || !service || !formData) {
     navigate('/');
     return null;
   }
 
   // WhatsApp prefilled message
   const whatsappMessage = encodeURIComponent(
-    `Hello Ace Educational Consult!\n\nI've made a payment for my order.\n\nOrder ID: ${orderId}\nService: ${selectedService.name}\nName: ${formData.fullName}\nPhone: ${formData.phone}\nEmail: ${formData.email}\n\nPlease confirm my payment. Thank you!`
+    `Hello Ace Educational Consult!\n\nI've made a payment for my order.\n\nOrder ID: ${orderId}\nService: ${service.name}\nName: ${formData.fullName}\nPhone: ${formData.phone}\nEmail: ${formData.email}\n\nPlease confirm my payment. Thank you!`
   );
-  const whatsappUrl = `https://wa.me/2348000000000?text=${whatsappMessage}`; // Replace with actual WhatsApp number
+  const whatsappUrl = `https://wa.me/${siteSettings.whatsappNumber}?text=${whatsappMessage}`;
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden py-24">
@@ -38,11 +41,11 @@ export default function PaymentPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Service Details</h2>
             <div className="flex justify-between mb-2">
               <span className="text-gray-600">Service</span>
-              <span className="font-semibold">{selectedService.name}</span>
+              <span className="font-semibold">{service.name}</span>
             </div>
             <div className="flex justify-between mb-4">
               <span className="text-gray-600">Price</span>
-              <span className="font-bold text-[#4169E1] text-xl">{selectedService.price}</span>
+              <span className="font-bold text-[#4169E1] text-xl">{service.price}</span>
             </div>
           </div>
           <div className="border border-[#4169E1]/20 bg-[#4169E1]/5 rounded-xl p-6 mb-8">
@@ -52,15 +55,15 @@ export default function PaymentPage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Bank Name</span>
-                <span className="font-semibold text-gray-900">Zenith Bank</span>
+                <span className="font-semibold text-gray-900">{siteSettings.paymentDetails.bankName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Account Number</span>
-                <span className="font-semibold text-gray-900">1234567890</span>
+                <span className="font-semibold text-gray-900">{siteSettings.paymentDetails.accountNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Account Name</span>
-                <span className="font-semibold text-gray-900">Ace Educational Consult</span>
+                <span className="font-semibold text-gray-900">{siteSettings.paymentDetails.accountName}</span>
               </div>
             </div>
           </div>

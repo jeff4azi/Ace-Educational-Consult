@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAdmin } from '../contexts/AdminContext';
 import AceLogo from '../assets/Ace-Educational-Consult-Logo.png';
 
 export default function HomePage() {
@@ -7,6 +8,26 @@ export default function HomePage() {
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef(null);
   const navigate = useNavigate();
+  const {
+    siteSettings,
+    services,
+    testimonials,
+    addContactMessage,
+    addTestimonial
+  } = useAdmin();
+
+  const [contactForm, setContactForm] = useState({
+    fullName: '',
+    email: '',
+    phoneNumber: '',
+    message: ''
+  });
+  const [testimonialForm, setTestimonialForm] = useState({
+    name: '',
+    text: '',
+    rating: 5
+  });
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -63,47 +84,30 @@ export default function HomePage() {
     )
   }
 
-  const services = {
-    "Examination Services": [
-      { name: "WAEC GCE Registration", price: "₦38,500", description: "Register for WAEC GCE with ease and confidence.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=WAEC%20examination%20registration%20form%20and%20certificate%20in%20Nigeria%20professional%20education&image_size=square_hd" },
-      { name: "WAEC Result Checker", price: "₦5,350", description: "Quickly check your WAEC results online.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=WAEC%20result%20checking%20online%20portal%20screen%20education&image_size=square_hd" },
-      { name: "WAEC Verification", price: "₦5,500", description: "Verify your WAEC certificate authenticity.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=certificate%20verification%20stamp%20and%20document%20education&image_size=square_hd" },
-      { name: "NECO Result Checker", price: "₦2,300", description: "Check your NECO results instantly.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=NECO%20examination%20result%20sheet%20education&image_size=square_hd" },
-      { name: "NECO e-Verification Token", price: "₦6,000", description: "Get your NECO e-verification token.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=digital%20token%20and%20security%20code%20education&image_size=square_hd" },
-      { name: "NECO e-Verification PDF", price: "₦5,800", description: "Download NECO verification PDF.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=PDF%20document%20download%20education&image_size=square_hd" },
-      { name: "NABTEB GCE Registration", price: "₦25,000", description: "Register for NABTEB GCE.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=NABTEB%20registration%20form%20education&image_size=square_hd" },
-      { name: "NABTEB Result Checker", price: "₦900", description: "Check NABTEB results quickly.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=result%20checker%20interface%20education&image_size=square_hd" },
-      { name: "NBAIS Result Checker", price: "₦1,300", description: "Check NBAIS results online.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=examination%20result%20display%20education&image_size=square_hd" }
-    ],
-    "JAMB Services": [
-      { name: "Admission Letter Printing", price: "Contact for Price", description: "Print your JAMB admission letter.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=university%20admission%20letter%20education&image_size=square_hd" },
-      { name: "Original Result Printing", price: "Contact for Price", description: "Get your original JAMB result printed.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=JAMB%20result%20slip%20education&image_size=square_hd" },
-      { name: "Change of Course Processing", price: "Contact for Price", description: "Process your JAMB change of course.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=course%20change%20form%20education&image_size=square_hd" },
-      { name: "Reprinting Services", price: "Contact for Price", description: "JAMB reprinting services available.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=printer%20printing%20document%20education&image_size=square_hd" },
-      { name: "O'Level Upload Support", price: "Contact for Price", description: "Upload your O'Level results to JAMB.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=upload%20document%20to%20portal%20education&image_size=square_hd" },
-      { name: "CAPS Admission Processing", price: "Contact for Price", description: "JAMB CAPS admission assistance.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=university%20admission%20portal%20education&image_size=square_hd" }
-    ],
-    "Identity & Verification": [
-      { name: "NIN Services", price: "Contact for Price", description: "National Identity Number services.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Nigerian%20NIN%20identity%20card%20verification&image_size=square_hd" },
-      { name: "Lost NIN Retrieval", price: "₦500", description: "Retrieve your lost NIN quickly.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=lost%20id%20card%20retrieval%20service&image_size=square_hd" },
-      { name: "BVN Services", price: "Contact for Price", description: "Bank Verification Number services.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=bank%20verification%20number%20BVN%20card&image_size=square_hd" }
-    ],
-    "Digital & Utility Services": [
-      { name: "Airtime Recharge", price: "Contact for Price", description: "Recharge your mobile airtime.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=mobile%20phone%20airtime%20recharge&image_size=square_hd" },
-      { name: "Data Subscription", price: "Contact for Price", description: "Subscribe to mobile data plans.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=mobile%20data%20subscription%20smartphone&image_size=square_hd" },
-      { name: "Electricity Bill Payment", price: "Contact for Price", description: "Pay your electricity bills online.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=electricity%20bill%20payment%20meter&image_size=square_hd" },
-      { name: "TV Subscription", price: "Contact for Price", description: "Renew your TV subscription.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=television%20subscription%20remote%20control&image_size=square_hd" },
-      { name: "PIN Vending", price: "Contact for Price", description: "Purchase various PINs.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=digital%20pin%20code%20security&image_size=square_hd" },
-      { name: "Digital Coupons", price: "Contact for Price", description: "Get digital coupons and vouchers.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=digital%20coupon%20voucher%20discount&image_size=square_hd" }
-    ]
-  }
-
   const scrollToSection = (id) => {
     const element = document.getElementById(id)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' })
     }
   }
+
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    addContactMessage(contactForm);
+    setSuccessMsg('Message sent successfully!');
+    setContactForm({ fullName: '', email: '', phoneNumber: '', message: '' });
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const handleTestimonialSubmit = (e) => {
+    e.preventDefault();
+    addTestimonial(testimonialForm);
+    setSuccessMsg('Testimonial submitted for approval!');
+    setTestimonialForm({ name: '', text: '', rating: 5 });
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const approvedTestimonials = testimonials.filter(t => t.approved);
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
@@ -128,6 +132,13 @@ export default function HomePage() {
           </div>
         </div>
       </nav>
+
+      {/* Success Message */}
+      {successMsg && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg">
+          {successMsg}
+        </div>
+      )}
 
       {/* Hero Section */}
       <section id="home" className="pt-32 pb-20 bg-gradient-to-br from-blue-50 to-white">
@@ -264,30 +275,74 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Testimonials + Submit Review */}
       <section id="testimonials" className="py-20 bg-gradient-to-br from-blue-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-[clamp(1.8rem,3vw,2.5rem)] font-bold text-gray-900 mb-4">Testimonials</h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">What our clients say about us</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { stars: 5, text: 'Very reliable and fast service. I received my result verification the same day.' },
-              { stars: 5, text: 'Excellent customer support and affordable pricing.' },
-              { stars: 5, text: 'Highly recommended for JAMB and WAEC services.' }
-            ].map((testimonial, idx) => (
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
+            {approvedTestimonials.map((testimonial, idx) => (
               <div key={idx} className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="text-[#FFC107] text-2xl mb-4">
-                  {Array(testimonial.stars).fill(0).map((_, i) => <i key={i} className="fas fa-star"></i>)}
+                  {Array(testimonial.rating).fill(0).map((_, i) => <i key={i} className="fas fa-star"></i>)}
                 </div>
                 <p className="text-gray-700 text-lg mb-6 italic">"{testimonial.text}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-[#4169E1] rounded-full flex items-center justify-center text-white font-bold">U</div>
-                  <div className="text-gray-500 font-medium">Happy Client</div>
+                  <div className="w-12 h-12 bg-[#4169E1] rounded-full flex items-center justify-center text-white font-bold">{testimonial.name.charAt(0)}</div>
+                  <div className="text-gray-500 font-medium">{testimonial.name}</div>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Submit Review Form */}
+          <div className="bg-white p-8 rounded-2xl shadow-lg max-w-2xl mx-auto">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Submit Your Review</h3>
+            <form onSubmit={handleTestimonialSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                <input
+                  type="text"
+                  required
+                  value={testimonialForm.name}
+                  onChange={(e) => setTestimonialForm({ ...testimonialForm, name: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setTestimonialForm({ ...testimonialForm, rating: star })}
+                      className={`text-3xl ${star <= testimonialForm.rating ? 'text-[#FFC107]' : 'text-gray-300'}`}
+                    >
+                      <i className="fas fa-star"></i>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
+                <textarea
+                  required
+                  value={testimonialForm.text}
+                  onChange={(e) => setTestimonialForm({ ...testimonialForm, text: e.target.value })}
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white py-4 rounded-xl font-semibold text-lg transition-all hover:shadow-lg hover:scale-105"
+              >
+                Submit Review
+              </button>
+            </form>
           </div>
         </div>
       </section>
@@ -301,7 +356,7 @@ export default function HomePage() {
             <button onClick={() => scrollToSection('contact')} className="bg-white hover:bg-gray-100 text-[#4169E1] px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:scale-105">
               Contact Us
             </button>
-            <a href="https://wa.me/2348000000000" target="_blank" rel="noopener noreferrer" className="bg-[#25D366] hover:bg-[#1ebe57] text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:scale-105 flex items-center gap-2">
+            <a href={`https://wa.me/${siteSettings.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] hover:bg-[#1ebe57] text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:scale-105 flex items-center gap-2">
               <i className="fab fa-whatsapp text-xl"></i>
               WhatsApp Support
             </a>
@@ -340,7 +395,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Phone Number</h4>
-                    <p className="text-gray-600">+234 800 000 0000</p>
+                    <p className="text-gray-600">{siteSettings.phoneNumber}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -349,7 +404,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Email Address</h4>
-                    <p className="text-gray-600">contact@aceeducational.com</p>
+                    <p className="text-gray-600">{siteSettings.email}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -358,7 +413,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Office Address</h4>
-                    <p className="text-gray-600">Lagos, Nigeria</p>
+                    <p className="text-gray-600">{siteSettings.address}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -367,30 +422,57 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Business Hours</h4>
-                    <p className="text-gray-600">Monday - Saturday: 8:00 AM - 8:00 PM</p>
+                    <p className="text-gray-600">{siteSettings.businessHours}</p>
                   </div>
                 </div>
               </div>
             </div>
             <div className="bg-white p-8 rounded-2xl shadow-lg">
-              <form className="space-y-6">
+              <form onSubmit={handleContactSubmit} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                  <input type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20" />
+                  <input
+                    type="text"
+                    required
+                    value={contactForm.fullName}
+                    onChange={(e) => setContactForm({ ...contactForm, fullName: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                  <input type="email" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20" />
+                  <input
+                    type="email"
+                    required
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                  <input type="tel" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20" />
+                  <input
+                    type="tel"
+                    required
+                    value={contactForm.phoneNumber}
+                    onChange={(e) => setContactForm({ ...contactForm, phoneNumber: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                  <textarea rows={5} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20" />
+                  <textarea
+                    required
+                    rows={5}
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                  />
                 </div>
-                <button type="submit" className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white py-4 rounded-xl font-semibold text-lg transition-all hover:shadow-lg hover:scale-105">
+                <button
+                  type="submit"
+                  className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white py-4 rounded-xl font-semibold text-lg transition-all hover:shadow-lg hover:scale-105"
+                >
                   Send Message
                 </button>
               </form>
@@ -409,10 +491,10 @@ export default function HomePage() {
               </div>
               <p className="text-gray-400 mb-6">Your trusted partner for educational and digital services in Nigeria.</p>
               <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-facebook-f"></i></a>
-                <a href="#" className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-twitter"></i></a>
-                <a href="#" className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-instagram"></i></a>
-                <a href="#" className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-linkedin-in"></i></a>
+                <a href={siteSettings.socialLinks.facebook} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-facebook-f"></i></a>
+                <a href={siteSettings.socialLinks.twitter} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-twitter"></i></a>
+                <a href={siteSettings.socialLinks.instagram} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-instagram"></i></a>
+                <a href={siteSettings.socialLinks.linkedin} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-linkedin-in"></i></a>
               </div>
             </div>
             <div>
@@ -427,9 +509,9 @@ export default function HomePage() {
             <div>
               <h4 className="font-bold text-lg mb-6">Contact Info</h4>
               <ul className="space-y-3 text-gray-400">
-                <li>+234 800 000 0000</li>
-                <li>contact@aceeducational.com</li>
-                <li>Lagos, Nigeria</li>
+                <li>{siteSettings.phoneNumber}</li>
+                <li>{siteSettings.email}</li>
+                <li>{siteSettings.address}</li>
               </ul>
             </div>
           </div>
@@ -440,7 +522,7 @@ export default function HomePage() {
       </footer>
 
       {/* Floating WhatsApp Button */}
-      <a href="https://wa.me/2348000000000" target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-50 group">
+      <a href={`https://wa.me/${siteSettings.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-50 group">
         <div className="w-16 h-16 bg-[#25D366] rounded-full flex items-center justify-center text-white text-3xl shadow-2xl pulse-whatsapp hover:scale-110 transition-transform">
           <i className="fab fa-whatsapp"></i>
         </div>

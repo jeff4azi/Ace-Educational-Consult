@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useOrder } from '../contexts/OrderContext';
+import { useAdmin } from '../contexts/AdminContext';
 import AceLogo from '../assets/Ace-Educational-Consult-Logo.png';
 
 export default function ServiceForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setSelectedService, setFormData, setOrderId, generateOrderId } = useOrder();
+  const { addOrder, siteSettings } = useAdmin();
   const [form, setForm] = useState({
     fullName: '',
     age: '',
@@ -15,8 +15,10 @@ export default function ServiceForm() {
     address: '',
     image: null,
     additionalInfo: '',
+    customFields: {},
   });
   const [imagePreview, setImagePreview] = useState(null);
+  const [orderId, setOrderId] = useState(null);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -30,13 +32,23 @@ export default function ServiceForm() {
     }
   };
 
+  const generateOrderId = () => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    return `ACE-${timestamp}-${random}`;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const newOrderId = generateOrderId();
-    setSelectedService(location.state?.service);
-    setFormData(form);
     setOrderId(newOrderId);
-    navigate('/payment');
+    addOrder({
+      orderId: newOrderId,
+      service: location.state?.service,
+      formData: form,
+      status: 'pending',
+    });
+    navigate('/payment', { state: { orderId: newOrderId, service: location.state?.service, formData: form } });
   };
 
   if (!location.state?.service) {
@@ -45,6 +57,87 @@ export default function ServiceForm() {
   }
 
   const { service } = location.state;
+
+  const renderCustomField = (field, index) => {
+    const value = form.customFields[field.name] || '';
+    const handleChange = (val) => {
+      setForm(prev => ({
+        ...prev,
+        customFields: {
+          ...prev.customFields,
+          [field.name]: val
+        }
+      }));
+    };
+
+    switch (field.type) {
+      case 'textarea':
+        return (
+          <div key={index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <textarea
+              required={field.required}
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+            />
+          </div>
+        );
+      case 'file':
+        return (
+          <div key={index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <input
+              type="file"
+              accept="image/*"
+              required={field.required}
+              onChange={(e) => handleChange(e.target.files[0])}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+            />
+          </div>
+        );
+      case 'number':
+        return (
+          <div key={index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <input
+              type="number"
+              required={field.required}
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+            />
+          </div>
+        );
+      case 'email':
+        return (
+          <div key={index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <input
+              type="email"
+              required={field.required}
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+            />
+          </div>
+        );
+      default: // text
+        return (
+          <div key={index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <input
+              type="text"
+              required={field.required}
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+            />
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden py-24">
@@ -57,7 +150,8 @@ export default function ServiceForm() {
             <i className="fas fa-arrow-left"></i> Back to Services
           </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Order</h1>
-          <p className="text-gray-600 mb-8">Service: <span className="font-semibold text-[#4169E1]">{service.name}</span></p>
+          <p className="text-gray-600 mb-2">Service: <span className="font-semibold text-[#4169E1]">{service.name}</span></p>
+          <p className="text-2xl font-bold text-[#4169E1] mb-8">{service.price}</p>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
@@ -134,6 +228,7 @@ export default function ServiceForm() {
                 </div>
               )}
             </div>
+            {service.fields?.map((field, index) => renderCustomField(field, index))}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Additional Information</label>
               <textarea
