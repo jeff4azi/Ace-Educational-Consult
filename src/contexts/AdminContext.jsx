@@ -308,24 +308,26 @@ export function AdminProvider({ children }) {
 
   // Orders
   const addOrder = async (order) => {
-    // Get service id
-    // First, find the service
-    let serviceId = null;
-    Object.values(services).flat().forEach(service => {
-      if (service.name === order.service?.name) {
-        serviceId = service.id;
+    try {
+      console.log('addOrder called with:', order); // Debug log
+      const { data, error } = await supabase.from('orders').insert({
+        order_id: order.orderId,
+        service_id: order.serviceId, // Use the serviceId passed directly
+        user_data: order.formData,
+        status: 'pending',
+      }).select().single();
+
+      console.log('addOrder result:', { data, error }); // Debug log
+      if (error) {
+        console.error('addOrder error:', error);
+        alert('Error creating order: ' + error.message);
       }
-    });
-
-    const { data, error } = await supabase.from('orders').insert({
-      order_id: order.orderId,
-      service_id: serviceId,
-      user_data: order.formData,
-      status: 'pending',
-    }).select().single();
-
-    if (!error && data) {
-      setOrders(prev => [data, ...prev]);
+      if (!error && data) {
+        setOrders(prev => [data, ...prev]);
+      }
+    } catch (err) {
+      console.error('addOrder exception:', err);
+      alert('Error creating order: ' + err.message);
     }
   };
 
