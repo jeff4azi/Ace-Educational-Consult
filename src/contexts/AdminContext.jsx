@@ -13,15 +13,38 @@ export function AdminProvider({ children }) {
   const [contactMessages, setContactMessages] = useState([]);
   const [orders, setOrders] = useState([]);
 
-  // Check session on mount
+  // Check session and load data on mount
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
+    const init = async () => {
+      try {
+        // First check auth session
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+
+        // Then load public data
+        await Promise.all([
+          loadSiteSettings(),
+          loadServiceCategories(),
+          loadServices(),
+          loadTestimonials(),
+        ]);
+
+        // If user is logged in, load admin-only data
+        if (session?.user) {
+          await Promise.all([
+            loadContactMessages(),
+            loadOrders(),
+          ]);
+        }
+      } catch (error) {
+        console.error('Error initializing:', error);
+      } finally {
+        // Set loading to false regardless of success/failure
+        setLoading(false);
+      }
     };
 
-    checkSession();
+    init();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -33,35 +56,27 @@ export function AdminProvider({ children }) {
     };
   }, []);
 
-  // Load public data always, admin data only when user is logged in
+  // Load admin-only data when user logs in
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load public data for everyone
-        await Promise.all([
-          loadSiteSettings(),
-          loadServiceCategories(),
-          loadServices(),
-          loadTestimonials(),
-        ]);
-
-        // Load admin-only data if user is logged in
-        if (user) {
+    const loadAdminData = async () => {
+      if (user) {
+        try {
           await Promise.all([
             loadContactMessages(),
             loadOrders(),
           ]);
+        } catch (error) {
+          console.error('Error loading admin data:', error);
         }
-      } catch (error) {
-        console.error('Error loading data:', error);
       }
     };
-    loadData();
+    loadAdminData();
   }, [user]);
 
   // Load site settings
   const loadSiteSettings = async () => {
     const { data, error } = await supabase.from('site_settings').select('*').single();
+    console.log('loadSiteSettings:', { data, error }); // Debug log
     if (!error && data) {
       setSiteSettings({
         phoneNumber: data.phone_number,
@@ -78,6 +93,7 @@ export function AdminProvider({ children }) {
   // Load service categories
   const loadServiceCategories = async () => {
     const { data, error } = await supabase.from('service_categories').select('*').order('name');
+    console.log('loadServiceCategories:', { data, error }); // Debug log
     if (!error && data) {
       setServiceCategories(data);
     }
@@ -86,6 +102,7 @@ export function AdminProvider({ children }) {
   // Load services
   const loadServices = async () => {
     const { data, error } = await supabase.from('services').select('*, category: service_categories(name)');
+    console.log('loadServices:', { data, error }); // Debug log
     if (!error && data) {
       // Group services by category
       const groupedServices = {};
@@ -112,6 +129,7 @@ export function AdminProvider({ children }) {
   // Load testimonials
   const loadTestimonials = async () => {
     const { data, error } = await supabase.from('testimonials').select('*').order('created_at', { ascending: false });
+    console.log('loadTestimonials:', { data, error }); // Debug log
     if (!error && data) {
       setTestimonials(data);
     }

@@ -4,11 +4,11 @@ import { useAdmin } from '../contexts/AdminContext';
 import AceLogo from '../assets/Ace-Educational-Consult-Logo.png';
 
 export default function HomePage() {
-  const [scrolled, setScrolled] = useState(false);
-  const [statsVisible, setStatsVisible] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const statsRef = useRef(null);
-  const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false)
+  const [statsVisible, setStatsVisible] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const statsRef = useRef(null)
+  const navigate = useNavigate()
   const {
     siteSettings,
     services,
@@ -16,7 +16,11 @@ export default function HomePage() {
     addContactMessage,
     addTestimonial,
     loading
-  } = useAdmin();
+  } = useAdmin()
+
+  // Calculate total number of available services
+  const totalServices = Object.values(services).reduce((sum, categoryServices) => sum + categoryServices.length, 0);
+  console.log('totalServices:', totalServices, 'services:', services) // Debug log
 
   const [contactForm, setContactForm] = useState({
     fullName: '',
@@ -45,10 +49,11 @@ export default function HomePage() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setStatsVisible(true)
+            observer.unobserve(entry.target)
           }
         })
       },
-      { threshold: 0.5 }
+      { threshold: 0.1 }
     )
     if (statsRef.current) {
       observer.observe(statsRef.current)
@@ -58,12 +63,12 @@ export default function HomePage() {
         observer.unobserve(statsRef.current)
       }
     }
-  }, [])
+  }, [statsRef.current])
 
   const Counter = ({ end, suffix }) => {
     const [count, setCount] = useState(0)
     useEffect(() => {
-      if (!statsVisible) return
+      console.log('Counter end value:', end) // Debug log
       let start = 0
       const duration = 2000
       const increment = end / (duration / 16)
@@ -77,7 +82,7 @@ export default function HomePage() {
         }
       }, 16)
       return () => clearInterval(timer)
-    }, [statsVisible, end])
+    }, [end])
     return (
       <span>
         {count.toLocaleString()}
@@ -221,7 +226,7 @@ export default function HomePage() {
               <div className="text-white text-lg font-medium">Customer Satisfaction</div>
             </div>
             <div>
-              <div className="text-4xl md:text-5xl font-bold text-[#FFC107] mb-2"><Counter end={50} suffix="+" /></div>
+              <div className="text-4xl md:text-5xl font-bold text-[#FFC107] mb-2"><Counter end={totalServices} suffix="+" /></div>
               <div className="text-white text-lg font-medium">Available Services</div>
             </div>
             <div>
