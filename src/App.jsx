@@ -10,6 +10,7 @@ import ServicesManager from './pages/admin/Services';
 import ContactMessages from './pages/admin/Messages';
 import TestimonialsManager from './pages/admin/Testimonials';
 import OrdersManager from './pages/admin/Orders';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   return (
@@ -19,7 +20,11 @@ export default function App() {
         <Route path="/service-form" element={<ServiceForm />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminDashboard />}>
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }>
           <Route index element={<DashboardHome />} />
           <Route path="dashboard" element={<DashboardHome />} />
           <Route path="settings" element={<SiteSettings />} />

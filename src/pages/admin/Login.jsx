@@ -1,21 +1,32 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAdmin } from '../../contexts/AdminContext';
 import AceLogo from '../../assets/Ace-Educational-Consult-Logo.png';
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAdmin();
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, isLoggedIn } = useAdmin();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  if (isLoggedIn) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (login(username, password)) {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await login(email, password);
       navigate('/admin/dashboard');
-    } else {
-      setError('Invalid credentials. Try admin/admin123');
+    } catch (err) {
+      setError(err.message || 'Invalid credentials');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -29,13 +40,13 @@ export default function AdminLogin() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && <div className="bg-red-50 text-red-700 p-3 rounded-xl text-sm">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
-              placeholder="admin"
+              placeholder="admin@example.com"
               required
             />
           </div>
@@ -46,15 +57,16 @@ export default function AdminLogin() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
-              placeholder="admin123"
+              placeholder="••••••••"
               required
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white py-4 rounded-xl font-semibold text-lg transition-all hover:shadow-xl hover:scale-105"
+            disabled={isLoading}
+            className="w-full bg-[#4169E1] hover:bg-[#3658c9] disabled:opacity-50 text-white py-4 rounded-xl font-semibold text-lg transition-all hover:shadow-xl hover:scale-105"
           >
-            Login
+            {isLoading ? 'Signing in...' : 'Login'}
           </button>
         </form>
       </div>

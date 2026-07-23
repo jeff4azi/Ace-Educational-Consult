@@ -4,37 +4,55 @@ import { supabase } from '../lib/supabase';
 const AdminContext = createContext();
 
 export function AdminProvider({ children }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('adminLoggedIn') === 'true';
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [siteSettings, setSiteSettings] = useState(null);
   const [serviceCategories, setServiceCategories] = useState([]);
   const [services, setServices] = useState({}); // { [categoryId]: [...services] }
   const [testimonials, setTestimonials] = useState([]);
   const [contactMessages, setContactMessages] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // Load all data from Supabase on mount
+  // Check session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setLoading(false);
+    };
+
+    checkSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Load all data from Supabase when user is logged in
   useEffect(() => {
     const loadData = async () => {
-      try {
-        await Promise.all([
-          loadSiteSettings(),
-          loadServiceCategories(),
-          loadServices(),
-          loadTestimonials(),
-          loadContactMessages(),
-          loadOrders(),
-        ]);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
+      if (user) {
+        try {
+          await Promise.all([
+            loadSiteSettings(),
+            loadServiceCategories(),
+            loadServices(),
+            loadTestimonials(),
+            loadContactMessages(),
+            loadOrders(),
+          ]);
+        } catch (error) {
+          console.error('Error loading data:', error);
+        }
       }
     };
     loadData();
-  }, []);
+  }, [user]);
 
   // Load site settings
   const loadSiteSettings = async () => {
@@ -110,18 +128,19 @@ export function AdminProvider({ children }) {
     }
   };
 
-  const login = (username, password) => {
-    if (username === 'admin' && password === 'admin123') {
-      setIsLoggedIn(true);
-      localStorage.setItem('adminLoggedIn', 'true');
-      return true;
+  const login = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
+      throw error;
     }
-    return false;
+    return data;
   };
 
-  const logout = () => {
-    setIsLoggedIn(false);
-    localStorage.removeItem('adminLoggedIn');
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   // Site settings
@@ -295,7 +314,8 @@ export function AdminProvider({ children }) {
   return (
     <AdminContext.Provider
       value={{
-        isLoggedIn,
+        user,
+        isLoggedIn: !!user,
         siteSettings,
         serviceCategories,
         services,

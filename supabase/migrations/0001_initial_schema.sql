@@ -73,14 +73,6 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Admin Users Table
-CREATE TABLE IF NOT EXISTS admin_users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    username VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Enable RLS on all tables
 ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE service_categories ENABLE ROW LEVEL SECURITY;
@@ -88,38 +80,46 @@ ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 
--- Site Settings: Anyone can read, only admins can update
-CREATE POLICY "Allow read access to site settings" ON site_settings
+-- Site Settings: Public read, Authenticated write
+CREATE POLICY "Allow public read access to site settings" ON site_settings
     FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated users full access to site settings" ON site_settings
+    FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
--- Service Categories: Anyone can read, only admins can modify
-CREATE POLICY "Allow read access to service categories" ON service_categories
+-- Service Categories: Public read, Authenticated write
+CREATE POLICY "Allow public read access to service categories" ON service_categories
     FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated users full access to service categories" ON service_categories
+    FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
--- Services: Anyone can read, only admins can modify
-CREATE POLICY "Allow read access to services" ON services
+-- Services: Public read, Authenticated write
+CREATE POLICY "Allow public read access to services" ON services
     FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated users full access to services" ON services
+    FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
--- Testimonials: Anyone can read approved, anyone can create, only admins can modify
-CREATE POLICY "Allow read access to approved testimonials" ON testimonials
+-- Testimonials: Public read approved, Public insert, Authenticated full access
+CREATE POLICY "Allow public read access to approved testimonials" ON testimonials
     FOR SELECT USING (approved = true);
-CREATE POLICY "Allow create access to testimonials" ON testimonials
+CREATE POLICY "Allow public to create testimonials" ON testimonials
     FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated users full access to testimonials" ON testimonials
+    FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
--- Contact Messages: Anyone can create, only admins can read/modify
-CREATE POLICY "Allow create access to contact messages" ON contact_messages
+-- Contact Messages: Public insert, Authenticated full access
+CREATE POLICY "Allow public to create contact messages" ON contact_messages
     FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated users full access to contact messages" ON contact_messages
+    FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
--- Orders: Anyone can create, only admins can read/modify
-CREATE POLICY "Allow create access to orders" ON orders
+-- Orders: Public insert, Authenticated full access
+CREATE POLICY "Allow public to create orders" ON orders
     FOR INSERT WITH CHECK (true);
-
--- Admin Users: Only accessible via Supabase Auth or service role
--- Note: We'll handle admin auth via Supabase Auth for better security
+CREATE POLICY "Allow authenticated users full access to orders" ON orders
+    FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- Create updated_at triggers
 CREATE OR REPLACE FUNCTION update_updated_at_column()

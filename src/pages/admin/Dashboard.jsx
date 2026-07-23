@@ -59,8 +59,8 @@ export default function AdminDashboard() {
             </Link>
           ))}
           <button
-            onClick={() => {
-              logout();
+            onClick={async () => {
+              await logout();
               navigate('/');
             }}
             className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-900/50 transition-colors w-full text-left"
