@@ -51,13 +51,13 @@ export default function ContactMessages() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-bold text-gray-900">{msg.fullName}</h3>
+                    <h3 className="text-lg font-bold text-gray-900">{msg.name}</h3>
                     {!msg.read && <span className="bg-[#4169E1] text-white text-xs px-2 py-1 rounded-full">New</span>}
                   </div>
                   <p className="text-gray-600 mb-1"><i className="fas fa-envelope mr-2"></i>{msg.email}</p>
-                  <p className="text-gray-600 mb-2"><i className="fas fa-phone mr-2"></i>{msg.phoneNumber}</p>
+                  {msg.phone_number && <p className="text-gray-600 mb-2"><i className="fas fa-phone mr-2"></i>{msg.phone_number}</p>}
                   <p className="text-gray-700">{msg.message}</p>
-                  <p className="text-sm text-gray-500 mt-2">Received: {new Date(msg.createdAt).toLocaleString()}</p>
+                  <p className="text-sm text-gray-500 mt-2">Received: {new Date(msg.created_at).toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
                   <button

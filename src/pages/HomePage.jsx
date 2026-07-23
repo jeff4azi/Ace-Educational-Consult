@@ -22,7 +22,7 @@ export default function HomePage() {
   const totalServices = Object.values(services).reduce((sum, categoryServices) => sum + categoryServices.length, 0);
 
   const [contactForm, setContactForm] = useState({
-    fullName: '',
+    name: '',
     email: '',
     phoneNumber: '',
     message: ''
@@ -100,7 +100,7 @@ export default function HomePage() {
     e.preventDefault();
     addContactMessage(contactForm);
     setSuccessMsg('Message sent successfully!');
-    setContactForm({ fullName: '', email: '', phoneNumber: '', message: '' });
+    setContactForm({ name: '', email: '', phoneNumber: '', message: '' });
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
@@ -478,8 +478,8 @@ export default function HomePage() {
                   <input
                     type="text"
                     required
-                    value={contactForm.fullName}
-                    onChange={(e) => setContactForm({ ...contactForm, fullName: e.target.value })}
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                   />
                 </div>
@@ -497,7 +497,6 @@ export default function HomePage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                   <input
                     type="tel"
-                    required
                     value={contactForm.phoneNumber}
                     onChange={(e) => setContactForm({ ...contactForm, phoneNumber: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"

@@ -283,7 +283,7 @@ export function AdminProvider({ children }) {
     const { data, error } = await supabase.from('contact_messages').insert({
       name: message.name,
       email: message.email,
-      subject: message.subject,
+      phone_number: message.phoneNumber,
       message: message.message,
     }).select().single();
 
@@ -293,8 +293,10 @@ export function AdminProvider({ children }) {
   };
 
   const markMessageRead = async (id) => {
-    await supabase.from('contact_messages').update({ read: true }).eq('id', id);
-    setContactMessages(prev => prev.map(m => m.id === id ? { ...m, read: true } : m));
+    const message = contactMessages.find(m => m.id === id);
+    const newReadStatus = !message?.read;
+    await supabase.from('contact_messages').update({ read: newReadStatus }).eq('id', id);
+    setContactMessages(prev => prev.map(m => m.id === id ? { ...m, read: newReadStatus } : m));
   };
 
   const deleteMessage = async (id) => {
