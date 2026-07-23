@@ -1,7 +1,29 @@
+import { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function TestimonialsManager() {
   const { testimonials, approveTestimonial, deleteTestimonial, loading } = useAdmin();
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [testimonialToDelete, setTestimonialToDelete] = useState(null);
+
+  const handleDelete = (id) => {
+    setTestimonialToDelete(id);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (testimonialToDelete) {
+      await deleteTestimonial(testimonialToDelete);
+      setIsConfirmModalOpen(false);
+      setTestimonialToDelete(null);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsConfirmModalOpen(false);
+    setTestimonialToDelete(null);
+  };
 
   if (loading) {
     return (
@@ -30,25 +52,33 @@ export default function TestimonialsManager() {
                 <p className="text-xs text-gray-500">{new Date(t.createdAt).toLocaleDateString()}</p>
               </div>
               <div className="flex gap-2">
-                {!t.approved && (
-                  <button
-                    onClick={() => approveTestimonial(t.id)}
-                    className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
-                  >
-                    Approve
-                  </button>
-                )}
+              {!t.approved && (
                 <button
-                  onClick={() => deleteTestimonial(t.id)}
-                  className="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                  onClick={() => approveTestimonial(t.id)}
+                  className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
                 >
-                  Delete
+                  Approve
                 </button>
-              </div>
+              )}
+              <button
+                onClick={() => handleDelete(t.id)}
+                className="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
             </div>
           </div>
         ))}
       </div>
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmDelete}
+        title="Delete Testimonial"
+        message="Are you sure you want to delete this testimonial?"
+      />
     </div>
   );
 }

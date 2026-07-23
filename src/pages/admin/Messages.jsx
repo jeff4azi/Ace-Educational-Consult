@@ -1,7 +1,29 @@
+import { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function ContactMessages() {
   const { contactMessages, markMessageRead, deleteMessage, loading } = useAdmin();
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null);
+
+  const handleDelete = (id) => {
+    setMessageToDelete(id);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (messageToDelete) {
+      await deleteMessage(messageToDelete);
+      setIsConfirmModalOpen(false);
+      setMessageToDelete(null);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsConfirmModalOpen(false);
+    setMessageToDelete(null);
+  };
 
   if (loading) {
     return (
@@ -45,17 +67,25 @@ export default function ContactMessages() {
                     {!msg.read ? 'Mark Read' : 'Mark Unread'}
                   </button>
                   <button
-                    onClick={() => deleteMessage(msg.id)}
-                    className="text-red-500 hover:text-red-700 font-medium"
-                  >
-                    Delete
-                  </button>
+                onClick={() => handleDelete(msg.id)}
+                className="text-red-500 hover:text-red-700 font-medium"
+              >
+                Delete
+              </button>
                 </div>
               </div>
             </div>
           ))
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmDelete}
+        title="Delete Message"
+        message="Are you sure you want to delete this message?"
+      />
     </div>
   );
 }

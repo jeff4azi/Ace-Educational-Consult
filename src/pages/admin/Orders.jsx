@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function OrdersManager() {
   const { orders, services, updateOrderStatus, deleteOrder, loading } = useAdmin();
   const [searchOrderId, setSearchOrderId] = useState('');
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [orderIdToDelete, setOrderIdToDelete] = useState(null);
 
   // Find service details for an order
   const getServiceForOrder = (order) => {
@@ -27,10 +30,22 @@ export default function OrdersManager() {
     document.body.removeChild(link);
   };
 
-  const handleDeleteOrder = async (id) => {
-    if (window.confirm('Are you sure you want to delete this order?')) {
-      await deleteOrder(id);
+  const handleDeleteOrder = (id) => {
+    setOrderIdToDelete(id);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (orderIdToDelete) {
+      await deleteOrder(orderIdToDelete);
+      setIsConfirmModalOpen(false);
+      setOrderIdToDelete(null);
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsConfirmModalOpen(false);
+    setOrderIdToDelete(null);
   };
 
   // Filter orders based on search
@@ -214,6 +229,14 @@ export default function OrdersManager() {
           })}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmDelete}
+        title="Delete Order"
+        message="Are you sure you want to delete this order?"
+      />
     </div>
   );
 }

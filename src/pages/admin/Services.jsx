@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { uploadImage } from '../../lib/imageUpload';
+import ConfirmModal from '../../components/ConfirmModal';
 
 export default function ServicesManager() {
   const { services, addService, updateService, deleteService, addServiceCategory, loading } = useAdmin();
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState(null);
   const [currentCategory, setCurrentCategory] = useState(Object.keys(services)[0] || 'Examination Services');
   const [formData, setFormData] = useState({
     name: '',
@@ -102,10 +105,22 @@ export default function ServicesManager() {
     setShowModal(true);
   };
 
-  const handleDelete = async (serviceId) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
-      await deleteService(currentCategory, serviceId);
+  const handleDelete = (serviceId) => {
+    setServiceToDelete(serviceId);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (serviceToDelete) {
+      await deleteService(currentCategory, serviceToDelete);
+      setIsConfirmModalOpen(false);
+      setServiceToDelete(null);
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsConfirmModalOpen(false);
+    setServiceToDelete(null);
   };
 
   if (loading) {
@@ -424,6 +439,14 @@ export default function ServicesManager() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmDelete}
+        title="Delete Service"
+        message="Are you sure you want to delete this service?"
+      />
     </div>
   );
 }
