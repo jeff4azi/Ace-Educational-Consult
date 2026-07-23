@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdmin } from '../contexts/AdminContext';
 import AceLogo from '../assets/Ace-Educational-Consult-Logo.png';
+import imageCompression from 'browser-image-compression';
 
 export default function ServiceForm() {
   const navigate = useNavigate();
@@ -17,15 +18,31 @@ export default function ServiceForm() {
     return `ACE-${timestamp}-${random}`;
   };
 
-  const handleFileChange = (fieldName, file) => {
+  const handleFileChange = async (fieldName, file) => {
     if (file) {
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setFilePreviews(prev => ({ ...prev, [fieldName]: event.target.result }));
-        setForm(prev => ({ ...prev, [fieldName]: event.target.result }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Compress image if it's an image file
+        let processedFile = file;
+        if (file.type.startsWith('image/')) {
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          };
+          processedFile = await imageCompression(file, options);
+        }
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setFilePreviews(prev => ({ ...prev, [fieldName]: event.target.result }));
+          setForm(prev => ({ ...prev, [fieldName]: event.target.result }));
+        };
+        reader.readAsDataURL(processedFile);
+      } catch (error) {
+        console.error('Error processing file:', error);
+        alert('Error processing file. Please try again.');
+      }
     }
   };
 
