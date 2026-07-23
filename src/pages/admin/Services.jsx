@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
+import { uploadImage } from '../../lib/imageUpload';
 
 export default function ServicesManager() {
-  const { services, addService, updateService, deleteService, setServices } = useAdmin();
+  const { services, addService, updateService, deleteService, addServiceCategory, loading } = useAdmin();
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
-  const [currentCategory, setCurrentCategory] = useState('Examination Services');
+  const [currentCategory, setCurrentCategory] = useState(Object.keys(services)[0] || 'Examination Services');
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -17,30 +18,40 @@ export default function ServicesManager() {
   const [newField, setNewField] = useState({ name: '', type: 'text', required: false });
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const categories = Object.keys(services);
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (newCategoryName.trim() && !categories.includes(newCategoryName.trim())) {
-      setServices(prev => ({
-        ...prev,
-        [newCategoryName.trim()]: []
-      }));
+      await addServiceCategory(newCategoryName.trim());
       setCurrentCategory(newCategoryName.trim());
       setNewCategoryName('');
       setShowNewCategory(false);
     }
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Show preview immediately
       const reader = new FileReader();
       reader.onload = (event) => {
-        setFormData(prev => ({ ...prev, image: event.target.result }));
         setImagePreview(event.target.result);
       };
       reader.readAsDataURL(file);
+      
+      // Upload the image
+      setIsUploading(true);
+      try {
+        const publicUrl = await uploadImage(file);
+        setFormData(prev => ({ ...prev, image: publicUrl }));
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('Error uploading image. Please try again.');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -61,12 +72,16 @@ export default function ServicesManager() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isUploading) {
+      alert('Please wait for the image to finish uploading.');
+      return;
+    }
     if (editingService) {
-      updateService(currentCategory, editingService.id, formData);
+      await updateService(currentCategory, editingService.id, formData);
     } else {
-      addService(currentCategory, formData);
+      await addService(currentCategory, formData);
     }
     setShowModal(false);
     setEditingService(null);
@@ -80,6 +95,23 @@ export default function ServicesManager() {
     setImagePreview(service.image);
     setShowModal(true);
   };
+
+  const handleDelete = async (serviceId) => {
+    if (window.confirm('Are you sure you want to delete this service?')) {
+      await deleteService(currentCategory, serviceId);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-4xl text-[#4169E1] mb-4"></i>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -139,7 +171,9 @@ export default function ServicesManager() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {services[currentCategory]?.map(service => (
           <div key={service.id} className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <img src={service.image} alt={service.name} className="w-full h-40 object-cover" />
+            {service.image && (
+              <img src={service.image} alt={service.name} className="w-full h-40 object-cover" />
+            )}
             <div className="p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-2">{service.name}</h3>
               <p className="text-2xl font-bold text-[#4169E1] mb-2">{service.price}</p>
@@ -162,7 +196,7 @@ export default function ServicesManager() {
                   <i className="fas fa-edit mr-1"></i> Edit
                 </button>
                 <button
-                  onClick={() => deleteService(currentCategory, service.id)}
+                  onClick={() => handleDelete(service.id)}
                   className="flex-1 bg-red-100 text-red-700 px-4 py-2 rounded-xl font-medium hover:bg-red-200 transition-colors"
                 >
                   <i className="fas fa-trash mr-1"></i> Delete
@@ -263,8 +297,14 @@ export default function ServicesManager() {
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                  disabled={isUploading}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 disabled:opacity-50"
                 />
+                {isUploading && (
+                  <p className="text-sm text-[#4169E1] mt-2">
+                    <i className="fas fa-spinner fa-spin mr-2"></i> Uploading image...
+                  </p>
+                )}
                 {imagePreview && (
                   <div className="mt-4">
                     <img 
@@ -317,7 +357,8 @@ export default function ServicesManager() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-[#4169E1] hover:bg-[#3658c9] text-white px-6 py-3 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105"
+                  disabled={isUploading}
+                  className="flex-1 bg-[#4169E1] hover:bg-[#3658c9] text-white px-6 py-3 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                 >
                   {editingService ? 'Update' : 'Add'} Service
                 </button>

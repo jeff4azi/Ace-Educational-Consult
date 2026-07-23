@@ -5,20 +5,38 @@ import AceLogo from '../assets/Ace-Educational-Consult-Logo.png';
 export default function PaymentPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { siteSettings } = useAdmin();
+  const { siteSettings, loading } = useAdmin();
 
   const { orderId, service, formData } = location.state || {};
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!orderId || !service || !formData) {
     navigate('/');
     return null;
   }
 
+  // Handle case where siteSettings might be null initially
+  const defaultSettings = {
+    whatsappNumber: '',
+    paymentDetails: { bankName: '', accountNumber: '', accountName: '' }
+  };
+  const settings = siteSettings || defaultSettings;
+
   // WhatsApp prefilled message
   const whatsappMessage = encodeURIComponent(
     `Hello Ace Educational Consult!\n\nI've made a payment for my order.\n\nOrder ID: ${orderId}\nService: ${service.name}\nName: ${formData.fullName}\nPhone: ${formData.phone}\nEmail: ${formData.email}\n\nPlease confirm my payment. Thank you!`
   );
-  const whatsappUrl = `https://wa.me/${siteSettings.whatsappNumber}?text=${whatsappMessage}`;
+  const whatsappUrl = `https://wa.me/${settings.whatsappNumber}?text=${whatsappMessage}`;
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden py-24">
@@ -55,15 +73,15 @@ export default function PaymentPage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Bank Name</span>
-                <span className="font-semibold text-gray-900">{siteSettings.paymentDetails.bankName}</span>
+                <span className="font-semibold text-gray-900">{settings.paymentDetails.bankName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Account Number</span>
-                <span className="font-semibold text-gray-900">{siteSettings.paymentDetails.accountNumber}</span>
+                <span className="font-semibold text-gray-900">{settings.paymentDetails.accountNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Account Name</span>
-                <span className="font-semibold text-gray-900">{siteSettings.paymentDetails.accountName}</span>
+                <span className="font-semibold text-gray-900">{settings.paymentDetails.accountName}</span>
               </div>
             </div>
           </div>

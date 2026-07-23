@@ -2,13 +2,35 @@ import { useState, useEffect } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
 
 export default function SiteSettings() {
-  const { siteSettings, updateSiteSettings } = useAdmin();
+  const { siteSettings, updateSiteSettings, loading } = useAdmin();
   const [formData, setFormData] = useState(siteSettings);
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    setFormData(siteSettings);
+    if (siteSettings) {
+      setFormData(siteSettings);
+    }
   }, [siteSettings]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Set default values if formData is null
+  if (!formData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-gray-600">Loading settings...</p>
+      </div>
+    );
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();

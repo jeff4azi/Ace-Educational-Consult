@@ -14,7 +14,8 @@ export default function HomePage() {
     services,
     testimonials,
     addContactMessage,
-    addTestimonial
+    addTestimonial,
+    loading
   } = useAdmin();
 
   const [contactForm, setContactForm] = useState({
@@ -109,6 +110,29 @@ export default function HomePage() {
   };
 
   const approvedTestimonials = testimonials.filter(t => t.approved);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle case where siteSettings might be null initially
+  const defaultSettings = {
+    phoneNumber: '',
+    email: '',
+    address: '',
+    businessHours: '',
+    whatsappNumber: '',
+    socialLinks: { facebook: '#', twitter: '#', instagram: '#', linkedin: '#' },
+    paymentDetails: { bankName: '', accountNumber: '', accountName: '' }
+  };
+  const settings = siteSettings || defaultSettings;
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
@@ -373,7 +397,7 @@ export default function HomePage() {
             <button onClick={() => scrollToSection('contact')} className="bg-white hover:bg-gray-100 text-[#4169E1] px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:scale-105">
               Contact Us
             </button>
-            <a href={`https://wa.me/${siteSettings.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] hover:bg-[#1ebe57] text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:scale-105 flex items-center gap-2">
+            <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] hover:bg-[#1ebe57] text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-xl hover:scale-105 flex items-center gap-2">
               <i className="fab fa-whatsapp text-xl"></i>
               WhatsApp Support
             </a>
@@ -412,7 +436,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Phone Number</h4>
-                    <p className="text-gray-600">{siteSettings.phoneNumber}</p>
+                    <p className="text-gray-600">{settings.phoneNumber}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -421,7 +445,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Email Address</h4>
-                    <p className="text-gray-600">{siteSettings.email}</p>
+                    <p className="text-gray-600">{settings.email}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -430,7 +454,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Office Address</h4>
-                    <p className="text-gray-600">{siteSettings.address}</p>
+                    <p className="text-gray-600">{settings.address}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -439,7 +463,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-1">Business Hours</h4>
-                    <p className="text-gray-600">{siteSettings.businessHours}</p>
+                    <p className="text-gray-600">{settings.businessHours}</p>
                   </div>
                 </div>
               </div>
@@ -508,10 +532,10 @@ export default function HomePage() {
               </div>
               <p className="text-gray-400 mb-6">Your trusted partner for educational and digital services in Nigeria.</p>
               <div className="flex gap-4">
-                <a href={siteSettings.socialLinks.facebook} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-facebook-f"></i></a>
-                <a href={siteSettings.socialLinks.twitter} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-twitter"></i></a>
-                <a href={siteSettings.socialLinks.instagram} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-instagram"></i></a>
-                <a href={siteSettings.socialLinks.linkedin} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-linkedin-in"></i></a>
+                <a href={settings.socialLinks.facebook} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-facebook-f"></i></a>
+                <a href={settings.socialLinks.twitter} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-twitter"></i></a>
+                <a href={settings.socialLinks.instagram} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-instagram"></i></a>
+                <a href={settings.socialLinks.linkedin} className="w-10 h-10 bg-gray-800 hover:bg-[#4169E1] rounded-full flex items-center justify-center transition-colors"><i className="fab fa-linkedin-in"></i></a>
               </div>
             </div>
             <div>
@@ -526,9 +550,9 @@ export default function HomePage() {
             <div>
               <h4 className="font-bold text-lg mb-6">Contact Info</h4>
               <ul className="space-y-3 text-gray-400">
-                <li>{siteSettings.phoneNumber}</li>
-                <li>{siteSettings.email}</li>
-                <li>{siteSettings.address}</li>
+                <li>{settings.phoneNumber}</li>
+                <li>{settings.email}</li>
+                <li>{settings.address}</li>
               </ul>
             </div>
           </div>
@@ -539,7 +563,7 @@ export default function HomePage() {
       </footer>
 
       {/* Floating WhatsApp Button */}
-      <a href={`https://wa.me/${siteSettings.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-50 group">
+      <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-50 group">
         <div className="w-16 h-16 bg-[#25D366] rounded-full flex items-center justify-center text-white text-3xl shadow-2xl pulse-whatsapp hover:scale-110 transition-transform">
           <i className="fab fa-whatsapp"></i>
         </div>

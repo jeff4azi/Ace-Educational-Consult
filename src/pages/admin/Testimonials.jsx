@@ -1,7 +1,18 @@
 import { useAdmin } from '../../contexts/AdminContext';
 
 export default function TestimonialsManager() {
-  const { testimonials, approveTestimonial, deleteTestimonial } = useAdmin();
+  const { testimonials, approveTestimonial, deleteTestimonial, loading } = useAdmin();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
