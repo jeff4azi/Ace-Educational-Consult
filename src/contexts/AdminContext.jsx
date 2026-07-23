@@ -53,7 +53,9 @@ const initialServices = {
     { id: 22, name: "TV Subscription", price: "Contact for Price", description: "Renew your TV subscription.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=television%20subscription%20remote%20control&image_size=square_hd", fields: [] },
     { id: 23, name: "PIN Vending", price: "Contact for Price", description: "Purchase various PINs.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=digital%20pin%20code%20security&image_size=square_hd", fields: [] },
     { id: 24, name: "Digital Coupons", price: "Contact for Price", description: "Get digital coupons and vouchers.", image: "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=digital%20coupon%20voucher%20discount&image_size=square_hd", fields: [] }
-  ]
+  ],
+  "University Services": [],
+  "Other Services": [],
 };
 
 const initialTestimonials = [
@@ -75,7 +77,16 @@ export function AdminProvider({ children }) {
   });
   const [services, setServices] = useState(() => {
     const saved = localStorage.getItem('services');
-    return saved ? JSON.parse(saved) : initialServices;
+    if (saved) {
+      const savedServices = JSON.parse(saved);
+      // Ensure new categories exist
+      const mergedServices = {
+        ...initialServices,
+        ...savedServices
+      };
+      return mergedServices;
+    }
+    return initialServices;
   });
   const [testimonials, setTestimonials] = useState(() => {
     const saved = localStorage.getItem('testimonials');
@@ -200,6 +211,7 @@ export function AdminProvider({ children }) {
         addService,
         updateService,
         deleteService,
+        setServices,
         addTestimonial,
         approveTestimonial,
         deleteTestimonial,

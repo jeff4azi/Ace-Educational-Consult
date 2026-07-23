@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
 
 export default function ServicesManager() {
-  const { services, addService, updateService, deleteService } = useAdmin();
+  const { services, addService, updateService, deleteService, setServices } = useAdmin();
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [currentCategory, setCurrentCategory] = useState('Examination Services');
@@ -15,8 +15,22 @@ export default function ServicesManager() {
   });
   const [imagePreview, setImagePreview] = useState('');
   const [newField, setNewField] = useState({ name: '', type: 'text', required: false });
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const categories = Object.keys(services);
+
+  const handleAddCategory = () => {
+    if (newCategoryName.trim() && !categories.includes(newCategoryName.trim())) {
+      setServices(prev => ({
+        ...prev,
+        [newCategoryName.trim()]: []
+      }));
+      setCurrentCategory(newCategoryName.trim());
+      setNewCategoryName('');
+      setShowNewCategory(false);
+    }
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -79,7 +93,7 @@ export default function ServicesManager() {
         </button>
       </div>
 
-      <div className="mb-6 flex gap-2 flex-wrap">
+      <div className="mb-6 flex gap-2 flex-wrap items-center">
         {categories.map(cat => (
           <button
             key={cat}
@@ -89,6 +103,37 @@ export default function ServicesManager() {
             {cat}
           </button>
         ))}
+        {!showNewCategory ? (
+          <button
+            onClick={() => setShowNewCategory(true)}
+            className="px-4 py-2 rounded-full font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+          >
+            <i className="fas fa-plus mr-2"></i> Add Category
+          </button>
+        ) : (
+          <div className="flex gap-2 items-center">
+            <input
+              type="text"
+              placeholder="New category name"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="px-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+              autoFocus
+            />
+            <button
+              onClick={handleAddCategory}
+              className="px-4 py-2 rounded-full font-medium bg-[#4169E1] text-white hover:bg-[#3658c9] transition-all"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
+              className="px-4 py-2 rounded-full font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -139,13 +184,48 @@ export default function ServicesManager() {
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                <select
-                  value={currentCategory}
-                  onChange={(e) => setCurrentCategory(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
-                >
-                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
+                <div className="space-y-2">
+                  <select
+                    value={currentCategory}
+                    onChange={(e) => setCurrentCategory(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                  >
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  {!showNewCategory ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowNewCategory(true)}
+                      className="text-[#4169E1] hover:text-[#3658c9] text-sm font-medium"
+                    >
+                      <i className="fas fa-plus mr-1"></i> Add New Category
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="New category name"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCategory}
+                        className="px-4 py-2 rounded-xl bg-[#4169E1] text-white hover:bg-[#3658c9] transition-all"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
+                        className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Service Name</label>
