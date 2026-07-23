@@ -91,7 +91,13 @@ export default function ServicesManager() {
 
   const handleEdit = (service) => {
     setEditingService(service);
-    setFormData(service);
+    setFormData({
+      name: service.name,
+      price: service.price,
+      description: service.description,
+      image: service.image,
+      fields: service.fields || [],
+    });
     setImagePreview(service.image);
     setShowModal(true);
   };
@@ -317,11 +323,49 @@ export default function ServicesManager() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Custom Fields</label>
-                <div className="space-y-2 mb-4">
+                <div className="space-y-3 mb-4">
                   {formData.fields.map((field, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl">
-                      <span className="text-gray-700 font-medium">{field.name} ({field.type}) {field.required ? '(required)' : ''}</span>
-                      <button type="button" onClick={() => handleRemoveField(i)} className="text-red-500 hover:text-red-700"><i className="fas fa-times"></i></button>
+                    <div key={i} className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl flex-wrap">
+                      <input
+                        type="text"
+                        placeholder="Field name"
+                        value={field.name}
+                        onChange={(e) => {
+                          const updatedFields = [...formData.fields];
+                          updatedFields[i] = { ...updatedFields[i], name: e.target.value };
+                          setFormData(prev => ({ ...prev, fields: updatedFields }));
+                        }}
+                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20"
+                      />
+                      <select
+                        value={field.type}
+                        onChange={(e) => {
+                          const updatedFields = [...formData.fields];
+                          updatedFields[i] = { ...updatedFields[i], type: e.target.value };
+                          setFormData(prev => ({ ...prev, fields: updatedFields }));
+                        }}
+                        className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20"
+                      >
+                        <option value="text">Text</option>
+                        <option value="email">Email</option>
+                        <option value="number">Number</option>
+                        <option value="file">File</option>
+                        <option value="textarea">Textarea</option>
+                      </select>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={field.required}
+                          onChange={(e) => {
+                            const updatedFields = [...formData.fields];
+                            updatedFields[i] = { ...updatedFields[i], required: e.target.checked };
+                            setFormData(prev => ({ ...prev, fields: updatedFields }));
+                          }}
+                          className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
+                        />
+                        <span className="text-sm text-gray-700">Required</span>
+                      </label>
+                      <button type="button" onClick={() => handleRemoveField(i)} className="text-red-500 hover:text-red-700 p-1"><i className="fas fa-times"></i></button>
                     </div>
                   ))}
                 </div>
@@ -333,17 +377,28 @@ export default function ServicesManager() {
                     onChange={(e) => setNewField(prev => ({ ...prev, name: e.target.value }))}
                     className="px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                   />
-                  <select
-                    value={newField.type}
-                    onChange={(e) => setNewField(prev => ({ ...prev, type: e.target.value }))}
-                    className="px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
-                  >
-                    <option value="text">Text</option>
-                    <option value="email">Email</option>
-                    <option value="number">Number</option>
-                    <option value="file">File</option>
-                    <option value="textarea">Textarea</option>
-                  </select>
+                  <div className="flex gap-2 items-center">
+                    <select
+                      value={newField.type}
+                      onChange={(e) => setNewField(prev => ({ ...prev, type: e.target.value }))}
+                      className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                    >
+                      <option value="text">Text</option>
+                      <option value="email">Email</option>
+                      <option value="number">Number</option>
+                      <option value="file">File</option>
+                      <option value="textarea">Textarea</option>
+                    </select>
+                    <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={newField.required}
+                        onChange={(e) => setNewField(prev => ({ ...prev, required: e.target.checked }))}
+                        className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
+                      />
+                      <span className="text-sm text-gray-700">Required</span>
+                    </label>
+                  </div>
                   <button type="button" onClick={handleAddField} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-medium transition-colors">Add</button>
                 </div>
               </div>

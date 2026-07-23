@@ -193,23 +193,19 @@ export function AdminProvider({ children }) {
     if (!category) return;
 
     const { data, error } = await supabase.from('services').update({
+      category_id: category.id,
       name: updatedService.name,
       price: updatedService.price,
       description: updatedService.description,
       image_url: updatedService.image,
       fields: updatedService.fields || [],
-    }).eq('id', serviceId).select().single();
+    }).eq('id', serviceId).select();
 
-    if (!error && data) {
-      setServices(prev => ({
-        ...prev,
-        [categoryName]: prev[categoryName].map(s => s.id === serviceId ? {
-          ...s,
-          ...updatedService,
-          id: data.id,
-          image: data.image_url,
-        } : s)
-      }));
+    if (error) {
+      console.error('Error updating service:', error);
+    } else {
+      // Reload all services to ensure grouping is correct if category changed
+      await loadServices();
     }
   };
 
