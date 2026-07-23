@@ -311,6 +311,11 @@ export function AdminProvider({ children }) {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
   };
 
+  const deleteOrder = async (id) => {
+    await supabase.from('orders').delete().eq('id', id);
+    setOrders(prev => prev.filter(o => o.id !== id));
+  };
+
   return (
     <AdminContext.Provider
       value={{
@@ -337,7 +342,8 @@ export function AdminProvider({ children }) {
         markMessageRead,
         deleteMessage,
         addOrder,
-        updateOrderStatus
+        updateOrderStatus,
+        deleteOrder
       }}
     >
       {children}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
 
 export default function OrdersManager() {
-  const { orders, services, updateOrderStatus, loading } = useAdmin();
+  const { orders, services, updateOrderStatus, deleteOrder, loading } = useAdmin();
   const [searchOrderId, setSearchOrderId] = useState('');
 
   // Find service details for an order
@@ -25,6 +25,12 @@ export default function OrdersManager() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleDeleteOrder = async (id) => {
+    if (window.confirm('Are you sure you want to delete this order?')) {
+      await deleteOrder(id);
+    }
   };
 
   // Filter orders based on search
@@ -86,17 +92,25 @@ export default function OrdersManager() {
                     <p className="text-gray-600">Service: {service?.name || order.service?.name || 'N/A'}</p>
                     <p className="text-sm text-gray-500">Placed: {new Date(order.created_at).toLocaleString()}</p>
                   </div>
-                  <select
-                    value={order.status}
-                    onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                    className="px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="paid">Paid</option>
-                    <option value="processing">Processing</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={order.status}
+                      onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                      className="px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="paid">Paid</option>
+                      <option value="processing">Processing</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    <button
+                      onClick={() => handleDeleteOrder(order.id)}
+                      className="bg-red-100 text-red-700 px-4 py-2 rounded-xl font-medium hover:bg-red-200 transition-colors"
+                    >
+                      <i className="fas fa-trash mr-1"></i> Delete
+                    </button>
+                  </div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl">
                   <h4 className="font-semibold text-gray-900 mb-4">Customer Details</h4>

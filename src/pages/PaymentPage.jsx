@@ -32,12 +32,28 @@ export default function PaymentPage() {
   };
   const settings = siteSettings || defaultSettings;
 
-  // Build WhatsApp message with all form fields
+  // Build WhatsApp message with all form fields, excluding images/files
   const buildWhatsAppMessage = () => {
     let message = `Hello Ace Educational Consult!\n\nI've made a payment for my order.\n\nOrder ID: ${orderId}\nService: ${service.name}`;
+    
+    // Create a set of field names that are image or file type
+    const excludedFields = new Set();
+    if (service.fields) {
+      service.fields.forEach(field => {
+        if (field.type === 'image' || field.type === 'file') {
+          excludedFields.add(field.name);
+        }
+      });
+    }
+    
     Object.entries(formData || {}).forEach(([key, value]) => {
-      if (value) {
-        message += `\n${key}: ${value}`;
+      if (value && !excludedFields.has(key)) {
+        // Also check if value is a data URL (fallback check)
+        if (typeof value === 'string' && value.startsWith('data:')) {
+          // Skip data URLs (images/files)
+        } else {
+          message += `\n${key}: ${value}`;
+        }
       }
     });
     message += '\n\nPlease confirm my payment. Thank you!';
