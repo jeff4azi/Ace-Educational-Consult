@@ -33,22 +33,27 @@ export function AdminProvider({ children }) {
     };
   }, []);
 
-  // Load all data from Supabase when user is logged in
+  // Load public data always, admin data only when user is logged in
   useEffect(() => {
     const loadData = async () => {
-      if (user) {
-        try {
+      try {
+        // Load public data for everyone
+        await Promise.all([
+          loadSiteSettings(),
+          loadServiceCategories(),
+          loadServices(),
+          loadTestimonials(),
+        ]);
+
+        // Load admin-only data if user is logged in
+        if (user) {
           await Promise.all([
-            loadSiteSettings(),
-            loadServiceCategories(),
-            loadServices(),
-            loadTestimonials(),
             loadContactMessages(),
             loadOrders(),
           ]);
-        } catch (error) {
-          console.error('Error loading data:', error);
         }
+      } catch (error) {
+        console.error('Error loading data:', error);
       }
     };
     loadData();
