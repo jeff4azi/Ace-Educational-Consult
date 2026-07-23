@@ -32,10 +32,18 @@ export default function PaymentPage() {
   };
   const settings = siteSettings || defaultSettings;
 
-  // WhatsApp prefilled message
-  const whatsappMessage = encodeURIComponent(
-    `Hello Ace Educational Consult!\n\nI've made a payment for my order.\n\nOrder ID: ${orderId}\nService: ${service.name}\nName: ${formData.fullName}\nPhone: ${formData.phone}\nEmail: ${formData.email}\n\nPlease confirm my payment. Thank you!`
-  );
+  // Build WhatsApp message with all form fields
+  const buildWhatsAppMessage = () => {
+    let message = `Hello Ace Educational Consult!\n\nI've made a payment for my order.\n\nOrder ID: ${orderId}\nService: ${service.name}`;
+    Object.entries(formData || {}).forEach(([key, value]) => {
+      if (value) {
+        message += `\n${key}: ${value}`;
+      }
+    });
+    message += '\n\nPlease confirm my payment. Thank you!';
+    return encodeURIComponent(message);
+  };
+  const whatsappMessage = buildWhatsAppMessage();
   const whatsappUrl = `https://wa.me/${settings.whatsappNumber}?text=${whatsappMessage}`;
 
   return (
