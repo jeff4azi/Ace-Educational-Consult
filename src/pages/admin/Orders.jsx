@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
 
 export default function OrdersManager() {
   const { orders, services, updateOrderStatus, loading } = useAdmin();
+  const [searchOrderId, setSearchOrderId] = useState('');
 
   // Find service details for an order
   const getServiceForOrder = (order) => {
@@ -14,6 +16,11 @@ export default function OrdersManager() {
     });
     return foundService;
   };
+
+  // Filter orders based on search
+  const filteredOrders = searchOrderId.trim()
+    ? orders.filter(order => order.order_id?.toLowerCase().includes(searchOrderId.toLowerCase()))
+    : orders;
 
   if (loading) {
     return (
@@ -29,14 +36,37 @@ export default function OrdersManager() {
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-8">Orders Manager</h2>
-      {orders.length === 0 ? (
+      
+      {/* Search Input */}
+      <div className="mb-8">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Search by Order ID</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchOrderId}
+            onChange={(e) => setSearchOrderId(e.target.value)}
+            placeholder="Paste or type order ID..."
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+          />
+          {searchOrderId && (
+            <button
+              onClick={() => setSearchOrderId('')}
+              className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium text-gray-700 transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {filteredOrders.length === 0 ? (
         <div className="bg-white p-8 rounded-2xl shadow-lg text-center text-gray-500">
           <i className="fas fa-shopping-cart text-5xl mb-4"></i>
-          <p>No orders yet</p>
+          <p>{searchOrderId ? 'No order found with that ID' : 'No orders yet'}</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.slice().reverse().map(order => {
+          {filteredOrders.slice().reverse().map(order => {
             const service = getServiceForOrder(order);
             return (
               <div key={order.id} className="bg-white p-6 rounded-2xl shadow-lg">
