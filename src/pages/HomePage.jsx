@@ -20,7 +20,6 @@ export default function HomePage() {
 
   // Calculate total number of available services
   const totalServices = Object.values(services).reduce((sum, categoryServices) => sum + categoryServices.length, 0);
-  console.log('totalServices:', totalServices, 'services:', services) // Debug log
 
   const [contactForm, setContactForm] = useState({
     fullName: '',
@@ -68,7 +67,6 @@ export default function HomePage() {
   const Counter = ({ end, suffix }) => {
     const [count, setCount] = useState(0)
     useEffect(() => {
-      console.log('Counter end value:', end) // Debug log
       let start = 0
       const duration = 2000
       const increment = end / (duration / 16)

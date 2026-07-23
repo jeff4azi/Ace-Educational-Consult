@@ -76,7 +76,6 @@ export function AdminProvider({ children }) {
   // Load site settings
   const loadSiteSettings = async () => {
     const { data, error } = await supabase.from('site_settings').select('*').single();
-    console.log('loadSiteSettings:', { data, error }); // Debug log
     if (!error && data) {
       setSiteSettings({
         phoneNumber: data.phone_number,
@@ -93,7 +92,6 @@ export function AdminProvider({ children }) {
   // Load service categories
   const loadServiceCategories = async () => {
     const { data, error } = await supabase.from('service_categories').select('*').order('name');
-    console.log('loadServiceCategories:', { data, error }); // Debug log
     if (!error && data) {
       setServiceCategories(data);
     }
@@ -102,7 +100,6 @@ export function AdminProvider({ children }) {
   // Load services
   const loadServices = async () => {
     const { data, error } = await supabase.from('services').select('*, category: service_categories(name)');
-    console.log('loadServices:', { data, error }); // Debug log
     if (!error && data) {
       // Group services by category
       const groupedServices = {};
@@ -129,7 +126,6 @@ export function AdminProvider({ children }) {
   // Load testimonials
   const loadTestimonials = async () => {
     const { data, error } = await supabase.from('testimonials').select('*').order('created_at', { ascending: false });
-    console.log('loadTestimonials:', { data, error }); // Debug log
     if (!error && data) {
       setTestimonials(data);
     }
@@ -308,26 +304,15 @@ export function AdminProvider({ children }) {
 
   // Orders
   const addOrder = async (order) => {
-    try {
-      console.log('addOrder called with:', order); // Debug log
-      const { data, error } = await supabase.from('orders').insert({
-        order_id: order.orderId,
-        service_id: order.serviceId, // Use the serviceId passed directly
-        user_data: order.formData,
-        status: 'pending',
-      }).select().single();
+    const { data, error } = await supabase.from('orders').insert({
+      order_id: order.orderId,
+      service_id: order.serviceId, // Use the serviceId passed directly
+      user_data: order.formData,
+      status: 'pending',
+    }).select().single();
 
-      console.log('addOrder result:', { data, error }); // Debug log
-      if (error) {
-        console.error('addOrder error:', error);
-        alert('Error creating order: ' + error.message);
-      }
-      if (!error && data) {
-        setOrders(prev => [data, ...prev]);
-      }
-    } catch (err) {
-      console.error('addOrder exception:', err);
-      alert('Error creating order: ' + err.message);
+    if (!error && data) {
+      setOrders(prev => [data, ...prev]);
     }
   };
 

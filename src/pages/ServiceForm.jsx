@@ -48,9 +48,6 @@ export default function ServiceForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('ServiceForm handleSubmit: location.state =', location.state);
-    console.log('ServiceForm handleSubmit: service =', location.state?.service);
-    console.log('ServiceForm handleSubmit: service.id =', location.state?.service.id);
     const newOrderId = generateOrderId();
     setOrderId(newOrderId);
     addOrder({
