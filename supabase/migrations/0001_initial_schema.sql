@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create custom types
-CREATE TYPE service_field_type AS ENUM ('text', 'email', 'number', 'file', 'textarea');
+CREATE TYPE service_field_type AS ENUM ('text', 'email', 'number', 'image', 'file', 'textarea');
 CREATE TYPE order_status AS ENUM ('pending', 'processing', 'completed', 'cancelled');
 
 -- 1. Site Settings Table

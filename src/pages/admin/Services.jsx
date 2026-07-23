@@ -350,6 +350,7 @@ export default function ServicesManager() {
                         <option value="email">Email</option>
                         <option value="number">Number</option>
                         <option value="file">File</option>
+                        <option value="image">Image</option>
                         <option value="textarea">Textarea</option>
                       </select>
                       <label className="flex items-center gap-1 cursor-pointer">
@@ -387,6 +388,7 @@ export default function ServicesManager() {
                       <option value="email">Email</option>
                       <option value="number">Number</option>
                       <option value="file">File</option>
+                      <option value="image">Image</option>
                       <option value="textarea">Textarea</option>
                     </select>
                     <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">

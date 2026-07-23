@@ -8,12 +8,25 @@ export default function ServiceForm() {
   const location = useLocation();
   const { addOrder, siteSettings } = useAdmin();
   const [form, setForm] = useState({});
+  const [filePreviews, setFilePreviews] = useState({}); // key: field name, value: data URL
   const [orderId, setOrderId] = useState(null);
 
   const generateOrderId = () => {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
     return `ACE-${timestamp}-${random}`;
+  };
+
+  const handleFileChange = (fieldName, file) => {
+    if (file) {
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFilePreviews(prev => ({ ...prev, [fieldName]: event.target.result }));
+        setForm(prev => ({ ...prev, [fieldName]: event.target.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -39,10 +52,7 @@ export default function ServiceForm() {
   const renderField = (field, index) => {
     const value = form[field.name] || '';
     const handleChange = (val) => {
-      setForm(prev => ({
-        ...prev,
-        [field.name]: val
-      }));
+      setForm(prev => ({ ...prev, [field.name]: val }));
     };
 
     switch (field.type) {
@@ -65,16 +75,32 @@ export default function ServiceForm() {
             <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
             <input
               type="file"
-              accept="image/*"
               required={field.required}
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) {
-                  handleChange(file);
-                }
-              }}
+              onChange={(e) => handleFileChange(field.name, e.target.files[0])}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
             />
+          </div>
+        );
+      case 'image':
+        return (
+          <div key={index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <input
+              type="file"
+              accept="image/*"
+              required={field.required}
+              onChange={(e) => handleFileChange(field.name, e.target.files[0])}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+            />
+            {filePreviews[field.name] && (
+              <div className="mt-4">
+                <img
+                  src={filePreviews[field.name]}
+                  alt={field.name}
+                  className="w-full max-h-64 object-contain rounded-xl border border-gray-200"
+                />
+              </div>
+            )}
           </div>
         );
       case 'number':

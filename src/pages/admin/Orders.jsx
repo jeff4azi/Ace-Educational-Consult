@@ -17,6 +17,16 @@ export default function OrdersManager() {
     return foundService;
   };
 
+  // Download function for data URLs
+  const downloadFile = (dataUrl, fileName) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Filter orders based on search
   const filteredOrders = searchOrderId.trim()
     ? orders.filter(order => order.order_id?.toLowerCase().includes(searchOrderId.toLowerCase()))
@@ -65,7 +75,7 @@ export default function OrdersManager() {
           <p>{searchOrderId ? 'No order found with that ID' : 'No orders yet'}</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {filteredOrders.slice().reverse().map(order => {
             const service = getServiceForOrder(order);
             return (
@@ -90,23 +100,98 @@ export default function OrdersManager() {
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl">
                   <h4 className="font-semibold text-gray-900 mb-4">Customer Details</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {service?.fields?.map((field, index) => (
-                      <div key={index}>
-                        <span className="font-medium text-gray-900">{field.name}:</span>
-                        <span className="ml-2 text-gray-700">
-                          {order.user_data?.[field.name] || 'N/A'}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {service?.fields?.map((field, index) => {
+                      const value = order.user_data?.[field.name];
+                      if (!value) {
+                        return (
+                          <div key={index}>
+                            <span className="font-medium text-gray-900">{field.name}:</span>
+                            <span className="ml-2 text-gray-500">N/A</span>
+                          </div>
+                        );
+                      }
+
+                      if (field.type === 'image') {
+                        return (
+                          <div key={index} className="space-y-2">
+                            <span className="font-medium text-gray-900 block">{field.name}:</span>
+                            <img
+                              src={value}
+                              alt={field.name}
+                              className="w-full max-h-64 object-contain rounded-xl border border-gray-200"
+                            />
+                            <button
+                              onClick={() => downloadFile(value, `${field.name}.png`)}
+                              className="bg-[#4169E1] hover:bg-[#3658c9] text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              <i className="fas fa-download mr-2"></i> Download Image
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      if (field.type === 'file') {
+                        return (
+                          <div key={index} className="space-y-2">
+                            <span className="font-medium text-gray-900 block">{field.name}:</span>
+                            <button
+                              onClick={() => downloadFile(value, `${field.name}.bin`)}
+                              className="bg-[#4169E1] hover:bg-[#3658c9] text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              <i className="fas fa-download mr-2"></i> Download File
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      // Regular text field
+                      return (
+                        <div key={index}>
+                          <span className="font-medium text-gray-900">{field.name}:</span>
+                          <span className="ml-2 text-gray-700 break-all">{value}</span>
+                        </div>
+                      );
+                    })}
                     {/* Fallback: if we don't have service fields, just show all user data keys */}
                     {!service?.fields?.length &&
-                      Object.entries(order.user_data || {}).map(([key, value], index) => (
-                        <div key={index}>
-                          <span className="font-medium text-gray-900">{key}:</span>
-                          <span className="ml-2 text-gray-700">{value}</span>
-                        </div>
-                      ))
+                      Object.entries(order.user_data || {}).map(([key, value], index) => {
+                        if (typeof value === 'string' && value.startsWith('data:')) {
+                          return (
+                            <div key={index} className="space-y-2">
+                              <span className="font-medium text-gray-900 block">{key}:</span>
+                              {value.startsWith('data:image') ? (
+                                <>
+                                  <img
+                                    src={value}
+                                    alt={key}
+                                    className="w-full max-h-64 object-contain rounded-xl border border-gray-200"
+                                  />
+                                  <button
+                                    onClick={() => downloadFile(value, `${key}.png`)}
+                                    className="bg-[#4169E1] hover:bg-[#3658c9] text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                                  >
+                                    <i className="fas fa-download mr-2"></i> Download
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => downloadFile(value, `${key}.bin`)}
+                                  className="bg-[#4169E1] hover:bg-[#3658c9] text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                                >
+                                  <i className="fas fa-download mr-2"></i> Download
+                                </button>
+                              )}
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={index}>
+                            <span className="font-medium text-gray-900">{key}:</span>
+                            <span className="ml-2 text-gray-700 break-all">{value}</span>
+                          </div>
+                        );
+                      })
                     }
                   </div>
                 </div>
