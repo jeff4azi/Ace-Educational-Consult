@@ -230,29 +230,71 @@ export function AdminProvider({ children }) {
     const category = serviceCategories.find(cat => cat.name === categoryName);
     if (!category) return;
 
-    const { data, error } = await supabase.from('services').update({
-      category_id: category.id,
-      name: updatedService.name,
-      price: updatedService.price,
-      description: updatedService.description,
-      image_url: updatedService.image,
-      fields: updatedService.fields || [],
-    }).eq('id', serviceId).select();
+    try {
+      // Get the current service to check if the image is changing
+      const { data: currentService } = await supabase.from('services').select('image_url').eq('id', serviceId).single();
+      
+      // If the image is being updated, delete the old one
+      if (currentService?.image_url && updatedService.image && currentService.image_url !== updatedService.image) {
+        const urlParts = new URL(currentService.image_url);
+        const pathParts = urlParts.pathname.split('/');
+        const oldFileName = pathParts[pathParts.length - 1];
+        
+        if (oldFileName) {
+          await supabase.storage.from('service-images').remove([oldFileName]);
+        }
+      }
 
-    if (error) {
+      // Update the service
+      const { data, error } = await supabase.from('services').update({
+        category_id: category.id,
+        name: updatedService.name,
+        price: updatedService.price,
+        description: updatedService.description,
+        image_url: updatedService.image,
+        fields: updatedService.fields || [],
+      }).eq('id', serviceId).select();
+
+      if (error) {
+        console.error('Error updating service:', error);
+      } else {
+        // Reload all services to ensure grouping is correct if category changed
+        await loadServices();
+      }
+    } catch (error) {
       console.error('Error updating service:', error);
-    } else {
-      // Reload all services to ensure grouping is correct if category changed
-      await loadServices();
     }
   };
 
   const deleteService = async (categoryName, serviceId) => {
-    await supabase.from('services').delete().eq('id', serviceId);
-    setServices(prev => ({
-      ...prev,
-      [categoryName]: prev[categoryName].filter(s => s.id !== serviceId)
-    }));
+    try {
+      // First get the service to retrieve the image_url
+      const { data: service } = await supabase.from('services').select('image_url').eq('id', serviceId).single();
+      
+      if (service?.image_url) {
+        // Extract file path from public URL
+        // Example URL: https://<project>.supabase.co/storage/v1/object/public/service-images/filename.jpg
+        const urlParts = new URL(service.image_url);
+        const pathParts = urlParts.pathname.split('/');
+        const fileName = pathParts[pathParts.length - 1]; // Get the last part which is the filename
+        
+        if (fileName) {
+          // Delete from storage
+          await supabase.storage.from('service-images').remove([fileName]);
+        }
+      }
+      
+      // Delete the service from the database
+      await supabase.from('services').delete().eq('id', serviceId);
+      
+      // Update local state
+      setServices(prev => ({
+        ...prev,
+        [categoryName]: prev[categoryName].filter(s => s.id !== serviceId)
+      }));
+    } catch (error) {
+      console.error('Error deleting service:', error);
+    }
   };
 
   // Testimonials
