@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 const AdminContext = createContext();
 
@@ -18,7 +18,9 @@ export function AdminProvider({ children }) {
     const init = async () => {
       try {
         // First check auth session
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
 
         // Then load public data
@@ -31,13 +33,10 @@ export function AdminProvider({ children }) {
 
         // If user is logged in, load admin-only data
         if (session?.user) {
-          await Promise.all([
-            loadContactMessages(),
-            loadOrders(),
-          ]);
+          await Promise.all([loadContactMessages(), loadOrders()]);
         }
       } catch (error) {
-        console.error('Error initializing:', error);
+        console.error("Error initializing:", error);
       } finally {
         // Set loading to false regardless of success/failure
         setLoading(false);
@@ -47,7 +46,9 @@ export function AdminProvider({ children }) {
     init();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
 
@@ -61,12 +62,9 @@ export function AdminProvider({ children }) {
     const loadAdminData = async () => {
       if (user) {
         try {
-          await Promise.all([
-            loadContactMessages(),
-            loadOrders(),
-          ]);
+          await Promise.all([loadContactMessages(), loadOrders()]);
         } catch (error) {
-          console.error('Error loading admin data:', error);
+          console.error("Error loading admin data:", error);
         }
       }
     };
@@ -75,7 +73,10 @@ export function AdminProvider({ children }) {
 
   // Load site settings
   const loadSiteSettings = async () => {
-    const { data, error } = await supabase.from('site_settings').select('*').single();
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("*")
+      .single();
     if (!error && data) {
       setSiteSettings({
         phoneNumber: data.phone_number,
@@ -83,6 +84,7 @@ export function AdminProvider({ children }) {
         address: data.address,
         businessHours: data.business_hours,
         whatsappNumber: data.whatsapp_number,
+        whatsappGroupLink: data.whatsapp_group_link || "",
         socialLinks: data.social_links,
         paymentDetails: data.payment_details,
       });
@@ -91,7 +93,10 @@ export function AdminProvider({ children }) {
 
   // Load service categories
   const loadServiceCategories = async () => {
-    const { data, error } = await supabase.from('service_categories').select('*').order('name');
+    const { data, error } = await supabase
+      .from("service_categories")
+      .select("*")
+      .order("name");
     if (!error && data) {
       setServiceCategories(data);
     }
@@ -99,11 +104,13 @@ export function AdminProvider({ children }) {
 
   // Load services
   const loadServices = async () => {
-    const { data, error } = await supabase.from('services').select('*, category: service_categories(name)');
+    const { data, error } = await supabase
+      .from("services")
+      .select("*, category: service_categories(name)");
     if (!error && data) {
       // Group services by category
       const groupedServices = {};
-      data.forEach(service => {
+      data.forEach((service) => {
         const categoryName = service.category?.name;
         if (categoryName) {
           if (!groupedServices[categoryName]) {
@@ -125,7 +132,10 @@ export function AdminProvider({ children }) {
 
   // Load testimonials
   const loadTestimonials = async () => {
-    const { data, error } = await supabase.from('testimonials').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from("testimonials")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (!error && data) {
       setTestimonials(data);
     }
@@ -133,7 +143,10 @@ export function AdminProvider({ children }) {
 
   // Load contact messages
   const loadContactMessages = async () => {
-    const { data, error } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from("contact_messages")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (!error && data) {
       setContactMessages(data);
     }
@@ -141,7 +154,10 @@ export function AdminProvider({ children }) {
 
   // Load orders
   const loadOrders = async () => {
-    const { data, error } = await supabase.from('orders').select('*, service: services(name)').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*, service: services(name)")
+      .order("created_at", { ascending: false });
     if (!error && data) {
       setOrders(data);
     }
@@ -170,45 +186,60 @@ export function AdminProvider({ children }) {
       address: newSettings.address,
       business_hours: newSettings.businessHours,
       whatsapp_number: newSettings.whatsappNumber,
+      whatsapp_group_link: newSettings.whatsappGroupLink,
       social_links: newSettings.socialLinks,
       payment_details: newSettings.paymentDetails,
     };
-    const { data, error } = await supabase.from('site_settings').select('id').single();
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("id")
+      .single();
     if (error) {
-      console.error('Error fetching site settings:', error);
+      console.error("Error fetching site settings:", error);
       return;
     }
     if (data) {
-      await supabase.from('site_settings').update(updatedSettings).eq('id', data.id);
+      await supabase
+        .from("site_settings")
+        .update(updatedSettings)
+        .eq("id", data.id);
     } else {
-      await supabase.from('site_settings').insert(updatedSettings);
+      await supabase.from("site_settings").insert(updatedSettings);
     }
     setSiteSettings(newSettings);
   };
 
   // Service categories
   const addServiceCategory = async (categoryName) => {
-    const { data, error } = await supabase.from('service_categories').insert({ name: categoryName }).select().single();
+    const { data, error } = await supabase
+      .from("service_categories")
+      .insert({ name: categoryName })
+      .select()
+      .single();
     if (!error && data) {
-      setServiceCategories(prev => [...prev, data]);
-      setServices(prev => ({ ...prev, [categoryName]: [] }));
+      setServiceCategories((prev) => [...prev, data]);
+      setServices((prev) => ({ ...prev, [categoryName]: [] }));
     }
   };
 
   // Services
   const addService = async (categoryName, service) => {
     // Get category id
-    const category = serviceCategories.find(cat => cat.name === categoryName);
+    const category = serviceCategories.find((cat) => cat.name === categoryName);
     if (!category) return;
 
-    const { data, error } = await supabase.from('services').insert({
-      category_id: category.id,
-      name: service.name,
-      price: service.price,
-      description: service.description,
-      image_url: service.image,
-      fields: service.fields || [],
-    }).select().single();
+    const { data, error } = await supabase
+      .from("services")
+      .insert({
+        category_id: category.id,
+        name: service.name,
+        price: service.price,
+        description: service.description,
+        image_url: service.image,
+        fields: service.fields || [],
+      })
+      .select()
+      .single();
 
     if (!error && data) {
       const newService = {
@@ -219,155 +250,190 @@ export function AdminProvider({ children }) {
         image: data.image_url,
         fields: data.fields || [],
       };
-      setServices(prev => ({
+      setServices((prev) => ({
         ...prev,
-        [categoryName]: [...(prev[categoryName] || []), newService]
+        [categoryName]: [...(prev[categoryName] || []), newService],
       }));
     }
   };
 
   const updateService = async (categoryName, serviceId, updatedService) => {
-    const category = serviceCategories.find(cat => cat.name === categoryName);
+    const category = serviceCategories.find((cat) => cat.name === categoryName);
     if (!category) return;
 
     try {
       // Get the current service to check if the image is changing
-      const { data: currentService } = await supabase.from('services').select('image_url').eq('id', serviceId).single();
-      
+      const { data: currentService } = await supabase
+        .from("services")
+        .select("image_url")
+        .eq("id", serviceId)
+        .single();
+
       // If the image is being updated, delete the old one
-      if (currentService?.image_url && updatedService.image && currentService.image_url !== updatedService.image) {
+      if (
+        currentService?.image_url &&
+        updatedService.image &&
+        currentService.image_url !== updatedService.image
+      ) {
         const urlParts = new URL(currentService.image_url);
-        const pathParts = urlParts.pathname.split('/');
+        const pathParts = urlParts.pathname.split("/");
         const oldFileName = pathParts[pathParts.length - 1];
-        
+
         if (oldFileName) {
-          await supabase.storage.from('service-images').remove([oldFileName]);
+          await supabase.storage.from("service-images").remove([oldFileName]);
         }
       }
 
       // Update the service
-      const { data, error } = await supabase.from('services').update({
-        category_id: category.id,
-        name: updatedService.name,
-        price: updatedService.price,
-        description: updatedService.description,
-        image_url: updatedService.image,
-        fields: updatedService.fields || [],
-      }).eq('id', serviceId).select();
+      const { data, error } = await supabase
+        .from("services")
+        .update({
+          category_id: category.id,
+          name: updatedService.name,
+          price: updatedService.price,
+          description: updatedService.description,
+          image_url: updatedService.image,
+          fields: updatedService.fields || [],
+        })
+        .eq("id", serviceId)
+        .select();
 
       if (error) {
-        console.error('Error updating service:', error);
+        console.error("Error updating service:", error);
       } else {
         // Reload all services to ensure grouping is correct if category changed
         await loadServices();
       }
     } catch (error) {
-      console.error('Error updating service:', error);
+      console.error("Error updating service:", error);
     }
   };
 
   const deleteService = async (categoryName, serviceId) => {
     try {
       // First get the service to retrieve the image_url
-      const { data: service } = await supabase.from('services').select('image_url').eq('id', serviceId).single();
-      
+      const { data: service } = await supabase
+        .from("services")
+        .select("image_url")
+        .eq("id", serviceId)
+        .single();
+
       if (service?.image_url) {
         // Extract file path from public URL
         // Example URL: https://<project>.supabase.co/storage/v1/object/public/service-images/filename.jpg
         const urlParts = new URL(service.image_url);
-        const pathParts = urlParts.pathname.split('/');
+        const pathParts = urlParts.pathname.split("/");
         const fileName = pathParts[pathParts.length - 1]; // Get the last part which is the filename
-        
+
         if (fileName) {
           // Delete from storage
-          await supabase.storage.from('service-images').remove([fileName]);
+          await supabase.storage.from("service-images").remove([fileName]);
         }
       }
-      
+
       // Delete the service from the database
-      await supabase.from('services').delete().eq('id', serviceId);
-      
+      await supabase.from("services").delete().eq("id", serviceId);
+
       // Update local state
-      setServices(prev => ({
+      setServices((prev) => ({
         ...prev,
-        [categoryName]: prev[categoryName].filter(s => s.id !== serviceId)
+        [categoryName]: prev[categoryName].filter((s) => s.id !== serviceId),
       }));
     } catch (error) {
-      console.error('Error deleting service:', error);
+      console.error("Error deleting service:", error);
     }
   };
 
   // Testimonials
   const addTestimonial = async (testimonial) => {
-    const { data, error } = await supabase.from('testimonials').insert({
-      name: testimonial.name,
-      text: testimonial.text,
-      rating: testimonial.rating,
-    }).select().single();
+    const { data, error } = await supabase
+      .from("testimonials")
+      .insert({
+        name: testimonial.name,
+        text: testimonial.text,
+        rating: testimonial.rating,
+      })
+      .select()
+      .single();
 
     if (!error && data) {
-      setTestimonials(prev => [data, ...prev]);
+      setTestimonials((prev) => [data, ...prev]);
     }
   };
 
   const approveTestimonial = async (id) => {
-    await supabase.from('testimonials').update({ approved: true }).eq('id', id);
-    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, approved: true } : t));
+    await supabase.from("testimonials").update({ approved: true }).eq("id", id);
+    setTestimonials((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, approved: true } : t)),
+    );
   };
 
   const deleteTestimonial = async (id) => {
-    await supabase.from('testimonials').delete().eq('id', id);
-    setTestimonials(prev => prev.filter(t => t.id !== id));
+    await supabase.from("testimonials").delete().eq("id", id);
+    setTestimonials((prev) => prev.filter((t) => t.id !== id));
   };
 
   // Contact messages
   const addContactMessage = async (message) => {
-    const { data, error } = await supabase.from('contact_messages').insert({
-      name: message.name,
-      email: message.email,
-      phone_number: message.phoneNumber,
-      message: message.message,
-    }).select().single();
+    const { data, error } = await supabase
+      .from("contact_messages")
+      .insert({
+        name: message.name,
+        email: message.email,
+        phone_number: message.phoneNumber,
+        message: message.message,
+      })
+      .select()
+      .single();
 
     if (!error && data) {
-      setContactMessages(prev => [data, ...prev]);
+      setContactMessages((prev) => [data, ...prev]);
     }
   };
 
   const markMessageRead = async (id) => {
-    const message = contactMessages.find(m => m.id === id);
+    const message = contactMessages.find((m) => m.id === id);
     const newReadStatus = !message?.read;
-    await supabase.from('contact_messages').update({ read: newReadStatus }).eq('id', id);
-    setContactMessages(prev => prev.map(m => m.id === id ? { ...m, read: newReadStatus } : m));
+    await supabase
+      .from("contact_messages")
+      .update({ read: newReadStatus })
+      .eq("id", id);
+    setContactMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, read: newReadStatus } : m)),
+    );
   };
 
   const deleteMessage = async (id) => {
-    await supabase.from('contact_messages').delete().eq('id', id);
-    setContactMessages(prev => prev.filter(m => m.id !== id));
+    await supabase.from("contact_messages").delete().eq("id", id);
+    setContactMessages((prev) => prev.filter((m) => m.id !== id));
   };
 
   // Orders
   const addOrder = async (order) => {
-    const { data, error } = await supabase.from('orders').insert({
-      order_id: order.orderId,
-      service_id: order.serviceId, // Use the serviceId passed directly
-      user_data: order.formData,
-      status: 'pending',
-    }).select().single();
+    const { data, error } = await supabase
+      .from("orders")
+      .insert({
+        order_id: order.orderId,
+        service_id: order.serviceId, // Use the serviceId passed directly
+        user_data: order.formData,
+        status: "pending",
+      })
+      .select()
+      .single();
 
     if (!error && data) {
-      setOrders(prev => [data, ...prev]);
+      setOrders((prev) => [data, ...prev]);
     }
   };
 
   const updateOrderStatus = async (id, status) => {
-    await supabase.from('orders').update({ status }).eq('id', id);
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+    await supabase.from("orders").update({ status }).eq("id", id);
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
   };
 
   const deleteOrder = async (id) => {
-    await supabase.from('orders').delete().eq('id', id);
-    setOrders(prev => prev.filter(o => o.id !== id));
+    await supabase.from("orders").delete().eq("id", id);
+    setOrders((prev) => prev.filter((o) => o.id !== id));
   };
 
   return (
@@ -397,7 +463,7 @@ export function AdminProvider({ children }) {
         deleteMessage,
         addOrder,
         updateOrderStatus,
-        deleteOrder
+        deleteOrder,
       }}
     >
       {children}
