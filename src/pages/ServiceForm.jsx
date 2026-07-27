@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAdmin } from '../contexts/AdminContext';
-import AceLogo from '../assets/Ace-Educational-Consult-Logo.png';
-import imageCompression from 'browser-image-compression';
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAdmin } from "../contexts/AdminContext";
+import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
+import imageCompression from "browser-image-compression";
 
 export default function ServiceForm() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function ServiceForm() {
       try {
         // Compress image if it's an image file
         let processedFile = file;
-        if (file.type.startsWith('image/')) {
+        if (file.type.startsWith("image/")) {
           const options = {
             maxSizeMB: 1,
             maxWidthOrHeight: 1920,
@@ -31,17 +31,20 @@ export default function ServiceForm() {
           };
           processedFile = await imageCompression(file, options);
         }
-        
+
         // Create preview
         const reader = new FileReader();
         reader.onload = (event) => {
-          setFilePreviews(prev => ({ ...prev, [fieldName]: event.target.result }));
-          setForm(prev => ({ ...prev, [fieldName]: event.target.result }));
+          setFilePreviews((prev) => ({
+            ...prev,
+            [fieldName]: event.target.result,
+          }));
+          setForm((prev) => ({ ...prev, [fieldName]: event.target.result }));
         };
         reader.readAsDataURL(processedFile);
       } catch (error) {
-        console.error('Error processing file:', error);
-        alert('Error processing file. Please try again.');
+        console.error("Error processing file:", error);
+        alert("Error processing file. Please try again.");
       }
     }
   };
@@ -52,30 +55,53 @@ export default function ServiceForm() {
     setOrderId(newOrderId);
     addOrder({
       orderId: newOrderId,
-      serviceId: location.state?.service.id, // Pass service id directly
+      serviceId: location.state?.service.id,
       formData: form,
     });
-    navigate('/payment', { state: { orderId: newOrderId, service: location.state?.service, formData: form } });
+    // Persist order ID in localStorage so the user can track it later
+    try {
+      const existing = JSON.parse(
+        localStorage.getItem("ace_order_ids") || "[]",
+      );
+      if (!existing.includes(newOrderId)) {
+        localStorage.setItem(
+          "ace_order_ids",
+          JSON.stringify([...existing, newOrderId]),
+        );
+      }
+    } catch {
+      localStorage.setItem("ace_order_ids", JSON.stringify([newOrderId]));
+    }
+    navigate("/payment", {
+      state: {
+        orderId: newOrderId,
+        service: location.state?.service,
+        formData: form,
+      },
+    });
   };
 
   if (!location.state?.service) {
-    navigate('/');
+    navigate("/");
     return null;
   }
 
   const { service } = location.state;
 
   const renderField = (field, index) => {
-    const value = form[field.name] || '';
+    const value = form[field.name] || "";
     const handleChange = (val) => {
-      setForm(prev => ({ ...prev, [field.name]: val }));
+      setForm((prev) => ({ ...prev, [field.name]: val }));
     };
 
     switch (field.type) {
-      case 'textarea':
+      case "textarea":
         return (
           <div key={index} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <label className="block text-sm font-medium text-gray-700">
+              {field.name}
+              {field.required ? " *" : ""}
+            </label>
             <textarea
               required={field.required}
               value={value}
@@ -85,10 +111,13 @@ export default function ServiceForm() {
             />
           </div>
         );
-      case 'file':
+      case "file":
         return (
           <div key={index} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <label className="block text-sm font-medium text-gray-700">
+              {field.name}
+              {field.required ? " *" : ""}
+            </label>
             <input
               type="file"
               required={field.required}
@@ -97,10 +126,13 @@ export default function ServiceForm() {
             />
           </div>
         );
-      case 'image':
+      case "image":
         return (
           <div key={index} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <label className="block text-sm font-medium text-gray-700">
+              {field.name}
+              {field.required ? " *" : ""}
+            </label>
             <input
               type="file"
               accept="image/*"
@@ -119,10 +151,13 @@ export default function ServiceForm() {
             )}
           </div>
         );
-      case 'number':
+      case "number":
         return (
           <div key={index} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <label className="block text-sm font-medium text-gray-700">
+              {field.name}
+              {field.required ? " *" : ""}
+            </label>
             <input
               type="number"
               required={field.required}
@@ -132,10 +167,13 @@ export default function ServiceForm() {
             />
           </div>
         );
-      case 'email':
+      case "email":
         return (
           <div key={index} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <label className="block text-sm font-medium text-gray-700">
+              {field.name}
+              {field.required ? " *" : ""}
+            </label>
             <input
               type="email"
               required={field.required}
@@ -148,7 +186,10 @@ export default function ServiceForm() {
       default: // text
         return (
           <div key={index} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">{field.name}{field.required ? ' *' : ''}</label>
+            <label className="block text-sm font-medium text-gray-700">
+              {field.name}
+              {field.required ? " *" : ""}
+            </label>
             <input
               type="text"
               required={field.required}
@@ -168,12 +209,22 @@ export default function ServiceForm() {
           <img src={AceLogo} alt="Ace Educational Consult" className="h-16" />
         </div>
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <button onClick={() => navigate('/')} className="text-[#4169E1] hover:text-[#3658c9] mb-6 flex items-center gap-2 font-medium">
+          <button
+            onClick={() => navigate("/")}
+            className="text-[#4169E1] hover:text-[#3658c9] mb-6 flex items-center gap-2 font-medium"
+          >
             <i className="fas fa-arrow-left"></i> Back to Services
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Order</h1>
-          <p className="text-gray-600 mb-2">Service: <span className="font-semibold text-[#4169E1]">{service.name}</span></p>
-          <p className="text-2xl font-bold text-[#4169E1] mb-8">{service.price}</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Complete Your Order
+          </h1>
+          <p className="text-gray-600 mb-2">
+            Service:{" "}
+            <span className="font-semibold text-[#4169E1]">{service.name}</span>
+          </p>
+          <p className="text-2xl font-bold text-[#4169E1] mb-8">
+            {service.price}
+          </p>
           <form onSubmit={handleSubmit} className="space-y-6">
             {service.fields?.map((field, index) => renderField(field, index))}
             <button

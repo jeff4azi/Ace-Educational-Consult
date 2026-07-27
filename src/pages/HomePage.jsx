@@ -927,6 +927,18 @@ export default function HomePage() {
         </div>
       </footer>
 
+      {/* Floating My Orders Button */}
+      <button
+        onClick={() => navigate("/my-orders")}
+        className="fixed bottom-28 right-6 z-50 group"
+        aria-label="Track my orders"
+      >
+        <div className="flex items-center gap-2 bg-[#4169E1] hover:bg-[#3658c9] text-white pl-4 pr-5 py-3 rounded-full shadow-2xl hover:scale-105 transition-all">
+          <i className="fas fa-receipt text-lg"></i>
+          <span className="text-sm font-semibold">My Orders</span>
+        </div>
+      </button>
+
       {/* Floating WhatsApp Button */}
       <a
         href={`https://wa.me/${settings.whatsappNumber}`}
