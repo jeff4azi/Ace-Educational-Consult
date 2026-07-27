@@ -949,9 +949,9 @@ export default function HomePage() {
         <div className="w-16 h-16 bg-[#25D366] rounded-full flex items-center justify-center text-white text-3xl shadow-2xl pulse-whatsapp hover:scale-110 transition-transform">
           <i className="fab fa-whatsapp"></i>
         </div>
-        <div className="absolute bottom-full right-0 mb-3 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          Need Help? Chat with us!
-        </div>
+        <div className="absolute bottom-full right-0 mb-3 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+  Need Help? Chat with us!
+</div>
       </a>
     </div>
   );
