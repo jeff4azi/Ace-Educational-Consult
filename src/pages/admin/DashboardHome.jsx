@@ -74,7 +74,7 @@ export default function DashboardHome() {
   };
 
   const OrderList = ({ title, orderList, emptyText }) => (
-    <div className="bg-white p-6 rounded-2xl shadow-lg">
+    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg min-w-0">
       <h3 className="text-lg font-bold text-gray-900 mb-4">{title}</h3>
       {orderList.length === 0 ? (
         <p className="text-gray-500 text-sm">{emptyText}</p>
@@ -83,7 +83,7 @@ export default function DashboardHome() {
           {orderList.slice(0, 5).map((order) => (
             <div
               key={order.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-xl gap-2"
             >
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-gray-900 truncate">
@@ -92,10 +92,10 @@ export default function DashboardHome() {
                 <p className="text-sm text-gray-500 truncate">
                   {order.service?.name || "N/A"}
                 </p>
-                <p className="text-xs text-gray-400">{order.order_id}</p>
+                <p className="text-xs text-gray-400 truncate">{order.order_id}</p>
               </div>
               <span
-                className={`ml-3 shrink-0 px-3 py-1 rounded-full text-xs font-medium ${statusConfig[order.status]?.badge || "bg-gray-100 text-gray-800"}`}
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusConfig[order.status]?.badge || "bg-gray-100 text-gray-800"}`}
               >
                 {statusConfig[order.status]?.label || order.status}
               </span>
@@ -112,24 +112,24 @@ export default function DashboardHome() {
   );
 
   return (
-    <div>
+    <div className="min-w-0 overflow-x-hidden">
       <h2 className="text-2xl font-bold text-gray-900 mb-8">
         Dashboard Overview
       </h2>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-2xl shadow-lg">
-            <div className="flex items-center gap-4">
+          <div key={i} className="bg-white p-3 md:p-6 rounded-2xl shadow-lg min-w-0">
+            <div className="flex items-center gap-2 md:gap-4">
               <div
-                className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center text-white text-xl shrink-0`}
+                className={`w-9 h-9 md:w-12 md:h-12 ${stat.color} rounded-xl flex items-center justify-center text-white text-sm md:text-xl shrink-0`}
               >
                 <i className={`fas ${stat.icon}`}></i>
               </div>
-              <div>
-                <p className="text-gray-500 text-sm">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+              <div className="min-w-0">
+                <p className="text-gray-500 text-xs md:text-sm truncate">{stat.label}</p>
+                <p className="text-xl md:text-3xl font-bold text-gray-900">{stat.value}</p>
               </div>
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Recent Messages */}
-      <div className="bg-white p-6 rounded-2xl shadow-lg">
+      <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg min-w-0">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
           Recent Messages
         </h3>
@@ -174,10 +174,10 @@ export default function DashboardHome() {
             {contactMessages.slice(0, 6).map((msg) => (
               <div
                 key={msg.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-xl gap-2"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900">
+                  <p className="font-medium text-gray-900 truncate">
                     {msg.name || msg.fullName}
                   </p>
                   <p className="text-sm text-gray-500 truncate">
@@ -185,7 +185,7 @@ export default function DashboardHome() {
                   </p>
                 </div>
                 {!msg.read && (
-                  <div className="w-3 h-3 bg-red-500 rounded-full shrink-0 ml-3"></div>
+                  <div className="w-3 h-3 bg-red-500 rounded-full shrink-0"></div>
                 )}
               </div>
             ))}
