@@ -2,25 +2,63 @@ import imageCompression from "browser-image-compression";
 import { supabase } from "./supabase";
 
 /**
- * Upload a service image (always images, compressed before upload).
+ * Compression presets
+ *
+ * "service"  — for landing-page service card images: aggressive compression,
+ *              convert to WebP, max 250 KB, 1600 px wide. These are tiny
+ *              thumbnails shown in a grid so quality loss is unnoticeable.
+ *
+ * "customer" — for customer-uploaded images in orders: lighter compression,
+ *              keep original format, max 500 KB, 1920 px. These may need to
+ *              be legible documents/photos so we preserve more quality.
  */
-export const uploadImage = async (file, bucketName = "service-images") => {
+const PRESETS = {
+  service: {
+    maxSizeMB: 0.25,
+    maxWidthOrHeight: 1600,
+    useWebWorker: true,
+    fileType: "image/webp",
+    initialQuality: 0.8,
+  },
+  customer: {
+    maxSizeMB: 0.5,
+    maxWidthOrHeight: 1920,
+    useWebWorker: true,
+  },
+};
+
+/**
+ * Upload an image to Supabase Storage.
+ *
+ * @param {File}   file       - The image file to upload.
+ * @param {string} bucketName - Storage bucket (default: "service-images").
+ * @param {"service"|"customer"} preset
+ *   - "service"  → 250 KB / 1600 px / WebP  (landing-page cards)
+ *   - "customer" → 500 KB / 1920 px / original format (order uploads)
+ *   Defaults to "service" so existing callers (Services.jsx) are unaffected.
+ *
+ * @returns {Promise<string>} Public URL of the uploaded image.
+ */
+export const uploadImage = async (
+  file,
+  bucketName = "service-images",
+  preset = "service",
+) => {
   try {
-    const options = {
-      maxSizeMB: 0.5,
-      maxWidthOrHeight: 1920,
-      useWebWorker: true,
-    };
+    const options = PRESETS[preset] ?? PRESETS.service;
     const compressedFile = await imageCompression(file, options);
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    // Use .webp extension for service preset, preserve original otherwise
+    const isWebp = options.fileType === "image/webp";
+    const ext = isWebp ? "webp" : file.name.split(".").pop() || "jpg";
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${ext}`;
 
     const { error } = await supabase.storage
       .from(bucketName)
       .upload(fileName, compressedFile, {
         cacheControl: "3600",
         upsert: false,
+        contentType: isWebp ? "image/webp" : file.type || "image/jpeg",
       });
 
     if (error) throw error;
@@ -37,28 +75,21 @@ export const uploadImage = async (file, bucketName = "service-images") => {
 };
 
 /**
- * Upload an order file (image or any document) to the order-files bucket.
- * Images are compressed first. Returns the public URL string.
+ * Upload an order file (image or document) to the "order-files" bucket.
+ * Images are compressed with the "customer" preset.
+ * Non-image files are uploaded as-is.
+ *
+ * @returns {Promise<string>} Public URL of the uploaded file.
  */
 export const uploadOrderFile = async (file) => {
   try {
     let fileToUpload = file;
 
-    // Compress images before upload
     if (file.type.startsWith("image/")) {
-      const options = {
-        maxSizeMB: 0.5,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-      };
-      fileToUpload = await imageCompression(file, options);
+      fileToUpload = await imageCompression(file, PRESETS.customer);
     }
 
-    // Preserve original extension from the original file object
     const originalName = file.name || "upload";
-    const ext = originalName.includes(".")
-      ? originalName.split(".").pop()
-      : "bin";
     const safeName = originalName
       .replace(/[^a-z0-9.\-_]/gi, "_")
       .substring(0, 60);
