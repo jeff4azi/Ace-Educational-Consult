@@ -480,10 +480,10 @@ export function AdminProvider({ children }) {
 
   const deleteOrder = async (id) => {
     try {
-      // Fetch user_data and receipt_url so we can clean up any uploaded files
+      // Fetch user_data, receipt_url and deliverable_urls so we can clean up all uploaded files
       const { data: order } = await supabase
         .from("orders")
-        .select("user_data, receipt_url")
+        .select("user_data, receipt_url, deliverable_urls")
         .eq("id", id)
         .single();
 
@@ -504,6 +504,17 @@ export function AdminProvider({ children }) {
         if (order.receipt_url && order.receipt_url.includes("/order-files/")) {
           const match = order.receipt_url.match(/\/order-files\/(.+)$/);
           if (match) urlsToDelete.push(match[1]);
+        }
+
+        // Collect deliverable URLs
+        if (Array.isArray(order.deliverable_urls)) {
+          order.deliverable_urls.forEach((item) => {
+            const url = typeof item === "string" ? item : item?.url;
+            if (url && url.includes("/order-files/")) {
+              const match = url.match(/\/order-files\/(.+)$/);
+              if (match) urlsToDelete.push(match[1]);
+            }
+          });
         }
 
         if (urlsToDelete.length > 0) {

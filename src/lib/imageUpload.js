@@ -115,3 +115,39 @@ export const uploadOrderFile = async (file) => {
     throw error;
   }
 };
+
+/**
+ * Upload an admin deliverable file to the order-files bucket.
+ * Returns { url, name } — name is the original filename preserved for display.
+ *
+ * @param {File} file
+ * @returns {Promise<{ url: string, name: string }>}
+ */
+export const uploadDeliverable = async (file) => {
+  try {
+    const originalName = file.name || "deliverable";
+    const safeName = originalName
+      .replace(/[^a-z0-9.\-_]/gi, "_")
+      .substring(0, 80);
+    const fileName = `deliverables/${Date.now()}-${Math.random().toString(36).substring(2, 8)}-${safeName}`;
+
+    const { error } = await supabase.storage
+      .from("order-files")
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type || "application/octet-stream",
+      });
+
+    if (error) throw error;
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("order-files").getPublicUrl(fileName);
+
+    return { url: publicUrl, name: originalName };
+  } catch (error) {
+    console.error("Error uploading deliverable:", error);
+    throw error;
+  }
+};

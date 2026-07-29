@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAdmin } from "../../contexts/AdminContext";
 import { supabase } from "../../lib/supabase";
+import { uploadDeliverable } from "../../lib/imageUpload";
 import ConfirmModal from "../../components/ConfirmModal";
 
 const PAGE_SIZE = 20;
@@ -60,12 +61,10 @@ export default function OrdersManager() {
     async (status, pageIndex, replace = false) => {
       const from = pageIndex * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-
       pageIndex === 0 ? setFetching(true) : setLoadingMore(true);
 
       const { data, error } = await supabase
         .from("orders")
-        // Deliberately exclude user_data from list queries — only fetch it when expanding
         .select(
           "id, order_id, status, created_at, service_id, service:services(name)",
         )
@@ -78,32 +77,34 @@ export default function OrdersManager() {
         setHasMore(data.length === PAGE_SIZE);
         setPage(pageIndex);
       }
-
       setFetching(false);
       setLoadingMore(false);
     },
     [],
   );
 
-  // Fetch user_data for a single order on demand (when expanded)
   const fetchOrderDetail = async (orderId) => {
     const { data, error } = await supabase
       .from("orders")
-      .select("user_data, receipt_url")
+      .select("user_data, receipt_url, deliverable_urls")
       .eq("id", orderId)
       .single();
     if (!error && data) {
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderId
-            ? { ...o, user_data: data.user_data, receipt_url: data.receipt_url }
+            ? {
+                ...o,
+                user_data: data.user_data,
+                receipt_url: data.receipt_url,
+                deliverable_urls: data.deliverable_urls ?? [],
+              }
             : o,
         ),
       );
     }
   };
 
-  // Initial load and tab switch
   useEffect(() => {
     setOrders([]);
     setExpandedOrders({});
@@ -118,26 +119,20 @@ export default function OrdersManager() {
     refreshOrderSummary();
   };
 
-  const handleLoadMore = () => {
-    fetchOrders(activeStatus, page + 1, false);
-  };
+  const handleLoadMore = () => fetchOrders(activeStatus, page + 1, false);
 
-  // ─── Expand / collapse ───────────────────────────────────────────────────
+  // ─── Expand ───────────────────────────────────────────────────────────────
 
   const toggleExpand = (order) => {
     const isOpen = expandedOrders[order.id];
     setExpandedOrders((prev) => ({ ...prev, [order.id]: !isOpen }));
-    // Lazy-load user_data only on first expand
-    if (!isOpen && order.user_data === undefined) {
-      fetchOrderDetail(order.id);
-    }
+    if (!isOpen && order.user_data === undefined) fetchOrderDetail(order.id);
   };
 
-  // ─── Status update ───────────────────────────────────────────────────────
+  // ─── Status update ────────────────────────────────────────────────────────
 
   const handleStatusChange = async (order, newStatus) => {
     await updateOrderStatus(order.id, newStatus);
-    // Remove from current list if it no longer matches the active tab
     if (newStatus !== activeStatus) {
       setOrders((prev) => prev.filter((o) => o.id !== order.id));
     } else {
@@ -148,7 +143,7 @@ export default function OrdersManager() {
     refreshOrderSummary();
   };
 
-  // ─── Delete ──────────────────────────────────────────────────────────────
+  // ─── Delete ───────────────────────────────────────────────────────────────
 
   const handleDeleteOrder = (id) => {
     setOrderIdToDelete(id);
@@ -165,7 +160,7 @@ export default function OrdersManager() {
     }
   };
 
-  // ─── Service lookup ──────────────────────────────────────────────────────
+  // ─── Service lookup ───────────────────────────────────────────────────────
 
   const getServiceForOrder = (order) => {
     if (!order.service_id) return null;
@@ -176,15 +171,13 @@ export default function OrdersManager() {
     return null;
   };
 
-  // ─── File helpers ────────────────────────────────────────────────────────
+  // ─── File helpers ─────────────────────────────────────────────────────────
 
   const isStorageUrl = (val) =>
     typeof val === "string" &&
     (val.startsWith("https://") || val.startsWith("http://"));
-
   const isImageUrl = (val) =>
     isStorageUrl(val) && /\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(val);
-
   const isBase64 = (val) => typeof val === "string" && val.startsWith("data:");
   const isBase64Img = (val) =>
     typeof val === "string" && val.startsWith("data:image");
@@ -237,20 +230,18 @@ export default function OrdersManager() {
     document.body.removeChild(link);
   };
 
-  // ─── Field renderer ──────────────────────────────────────────────────────
+  // ─── Field renderer ───────────────────────────────────────────────────────
 
   const renderFieldValue = (fieldName, value) => {
-    if (!value) {
+    if (!value)
       return (
         <div key={fieldName}>
           <span className="font-medium text-gray-700">{fieldName}:</span>
           <span className="ml-2 text-gray-400 italic">N/A</span>
         </div>
       );
-    }
 
-    // Storage URL — image
-    if (isImageUrl(value)) {
+    if (isImageUrl(value))
       return (
         <div key={fieldName} className="space-y-2">
           <span className="font-medium text-gray-700 block">{fieldName}:</span>
@@ -268,10 +259,8 @@ export default function OrdersManager() {
           </button>
         </div>
       );
-    }
 
-    // Storage URL — non-image file
-    if (isStorageUrl(value)) {
+    if (isStorageUrl(value))
       return (
         <div key={fieldName} className="space-y-1">
           <span className="font-medium text-gray-700 block">{fieldName}:</span>
@@ -283,10 +272,8 @@ export default function OrdersManager() {
           </button>
         </div>
       );
-    }
 
-    // Legacy base64 — image
-    if (isBase64Img(value)) {
+    if (isBase64Img(value))
       return (
         <div key={fieldName} className="space-y-2">
           <span className="font-medium text-gray-700 block">{fieldName}:</span>
@@ -304,10 +291,8 @@ export default function OrdersManager() {
           </button>
         </div>
       );
-    }
 
-    // Legacy base64 — non-image file
-    if (isBase64(value)) {
+    if (isBase64(value))
       return (
         <div key={fieldName} className="space-y-1">
           <span className="font-medium text-gray-700 block">{fieldName}:</span>
@@ -319,9 +304,7 @@ export default function OrdersManager() {
           </button>
         </div>
       );
-    }
 
-    // Plain text
     return (
       <div key={fieldName}>
         <span className="font-medium text-gray-700">{fieldName}:</span>
@@ -330,7 +313,151 @@ export default function OrdersManager() {
     );
   };
 
-  // ─── Filter by search ────────────────────────────────────────────────────
+  // ─── Deliverables panel ───────────────────────────────────────────────────
+
+  function DeliverablesPanel({ order }) {
+    const fileInputRef = useRef(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
+    const [removing, setRemoving] = useState(null); // index being removed
+
+    const deliverables = Array.isArray(order.deliverable_urls)
+      ? order.deliverable_urls
+      : [];
+
+    const saveDeliverables = async (updated) => {
+      await supabase
+        .from("orders")
+        .update({ deliverable_urls: updated })
+        .eq("id", order.id);
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id ? { ...o, deliverable_urls: updated } : o,
+        ),
+      );
+    };
+
+    const handleUpload = async (file) => {
+      if (!file) return;
+      setUploading(true);
+      setUploadError(null);
+      try {
+        const item = await uploadDeliverable(file);
+        const updated = [...deliverables, item];
+        await saveDeliverables(updated);
+      } catch {
+        setUploadError("Upload failed. Please try again.");
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+
+    const handleRemove = async (index) => {
+      setRemoving(index);
+      try {
+        const item = deliverables[index];
+        const url = typeof item === "string" ? item : item?.url;
+        // Delete from storage
+        if (url && url.includes("/order-files/")) {
+          const match = url.match(/\/order-files\/(.+)$/);
+          if (match)
+            await supabase.storage.from("order-files").remove([match[1]]);
+        }
+        const updated = deliverables.filter((_, i) => i !== index);
+        await saveDeliverables(updated);
+      } finally {
+        setRemoving(null);
+      }
+    };
+
+    return (
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Deliverable Files
+          </h4>
+          <label
+            className={`flex items-center gap-1.5 text-xs font-medium text-[#4169E1] cursor-pointer hover:text-[#3658c9] transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => handleUpload(e.target.files[0])}
+              disabled={uploading}
+            />
+            {uploading ? (
+              <>
+                <i className="fas fa-spinner fa-spin"></i> Uploading...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-plus"></i> Add File
+              </>
+            )}
+          </label>
+        </div>
+
+        {uploadError && (
+          <p className="text-red-500 text-xs mb-2 flex items-center gap-1">
+            <i className="fas fa-circle-exclamation"></i> {uploadError}
+          </p>
+        )}
+
+        {deliverables.length === 0 ? (
+          <p className="text-xs text-gray-400 italic">
+            No deliverables uploaded yet.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {deliverables.map((item, i) => {
+              const url = typeof item === "string" ? item : item?.url;
+              const name =
+                typeof item === "string"
+                  ? decodeURIComponent(new URL(url).pathname.split("/").pop())
+                  : item?.name ||
+                    decodeURIComponent(new URL(url).pathname.split("/").pop());
+              return (
+                <div
+                  key={i}
+                  className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-2.5 gap-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <i className="fas fa-file text-[#4169E1] shrink-0 text-sm"></i>
+                    <span className="text-sm text-gray-700 truncate">
+                      {name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => downloadFromUrl(url, name)}
+                      className="text-xs text-[#4169E1] hover:text-[#3658c9] font-medium px-2 py-1 rounded-lg hover:bg-[#4169E1]/10 transition-colors"
+                    >
+                      <i className="fas fa-download mr-1"></i>DL
+                    </button>
+                    <button
+                      onClick={() => handleRemove(i)}
+                      disabled={removing === i}
+                      className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40"
+                    >
+                      {removing === i ? (
+                        <i className="fas fa-spinner fa-spin"></i>
+                      ) : (
+                        <i className="fas fa-trash"></i>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ─── Visible list ─────────────────────────────────────────────────────────
 
   const visibleOrders = searchOrderId.trim()
     ? orders.filter((o) =>
@@ -338,7 +465,7 @@ export default function OrdersManager() {
       )
     : orders;
 
-  // ─── Render ──────────────────────────────────────────────────────────────
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div>
@@ -350,7 +477,7 @@ export default function OrdersManager() {
           disabled={fetching}
           className="flex items-center gap-2 bg-[#4169E1] hover:bg-[#3658c9] disabled:bg-gray-300 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
         >
-          <i className={`fas fa-rotate-right ${fetching ? "fa-spin" : ""}`}></i>
+          <i className={`fas fa-rotate-right ${fetching ? "fa-spin" : ""}`}></i>{" "}
           Refresh
         </button>
       </div>
@@ -488,13 +615,13 @@ export default function OrdersManager() {
                     </div>
                   </div>
 
-                  {/* Expanded detail — user_data loaded on demand */}
+                  {/* Expanded detail */}
                   {isExpanded && (
                     <div className="border-t border-gray-100 bg-gray-50 p-4">
                       {order.user_data === undefined ? (
                         <div className="flex items-center gap-2 text-gray-400 text-sm py-2">
-                          <i className="fas fa-spinner fa-spin"></i>
-                          Loading details...
+                          <i className="fas fa-spinner fa-spin"></i> Loading
+                          details...
                         </div>
                       ) : (
                         <>
@@ -514,7 +641,7 @@ export default function OrdersManager() {
                                 )}
                           </div>
 
-                          {/* Receipt / Proof of Payment */}
+                          {/* Proof of Payment */}
                           {order.receipt_url && (
                             <div className="mt-4 pt-4 border-t border-gray-200">
                               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
@@ -557,6 +684,9 @@ export default function OrdersManager() {
                               )}
                             </div>
                           )}
+
+                          {/* Deliverables — always shown, admin can upload anytime */}
+                          <DeliverablesPanel order={order} />
                         </>
                       )}
                     </div>

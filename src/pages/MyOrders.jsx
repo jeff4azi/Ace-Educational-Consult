@@ -236,6 +236,59 @@ function OrderCard({ record, onRemove }) {
             )}
           </>
         )}
+
+        {/* ── Deliverables ───────────────────────────────────────────────── */}
+        {record.order.status === "completed" && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Your Files
+            </p>
+            {Array.isArray(record.order.deliverable_urls) &&
+            record.order.deliverable_urls.length > 0 ? (
+              <div className="space-y-2">
+                {record.order.deliverable_urls.map((item, i) => {
+                  const url = typeof item === "string" ? item : item?.url;
+                  const name =
+                    typeof item === "string"
+                      ? decodeURIComponent(
+                          new URL(url).pathname.split("/").pop(),
+                        )
+                      : item?.name ||
+                        decodeURIComponent(
+                          new URL(url).pathname.split("/").pop(),
+                        );
+                  return (
+                    <a
+                      key={i}
+                      href={url}
+                      download={name}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 hover:bg-green-100 transition-colors group"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <i className="fas fa-file-arrow-down text-green-600 shrink-0"></i>
+                        <span className="text-sm text-gray-800 font-medium truncate">
+                          {name}
+                        </span>
+                      </div>
+                      <span className="text-xs text-green-700 font-semibold shrink-0 flex items-center gap-1">
+                        <i className="fas fa-download text-xs"></i> Download
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 opacity-60 cursor-not-allowed">
+                <i className="fas fa-clock text-gray-400"></i>
+                <span className="text-sm text-gray-500">
+                  File not available yet
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -276,7 +329,7 @@ export default function MyOrders() {
       setLoading(true);
       const { data } = await supabase
         .from("orders")
-        .select("*, service:services(name)")
+        .select("*, service:services(name), deliverable_urls")
         .in("order_id", orderIds);
 
       const foundIds = new Set((data || []).map((o) => o.order_id));
@@ -320,7 +373,7 @@ export default function MyOrders() {
     setManualError("");
     const { data, error } = await supabase
       .from("orders")
-      .select("*, service:services(name)")
+      .select("*, service:services(name), deliverable_urls")
       .eq("order_id", id)
       .single();
 
