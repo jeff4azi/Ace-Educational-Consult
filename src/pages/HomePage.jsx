@@ -955,7 +955,7 @@ export default function HomePage() {
           <i className="fas fa-receipt text-lg"></i>
           <span className="text-sm font-semibold">My Orders</span>
           {hasPendingOrder && (
-            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+            <span className="absolute -top-1.5 -right-1 size-4.5 bg-red-500 rounded-full border-2 border-white animate-pulse" />
           )}
         </div>
       </button>
