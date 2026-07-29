@@ -244,7 +244,7 @@ export default function OrdersManager() {
     // Storage URL — image
     if (isImageUrl(value)) {
       return (
-        <div key={fieldName} className="space-y-2 col-span-2">
+        <div key={fieldName} className="space-y-2">
           <span className="font-medium text-gray-700 block">{fieldName}:</span>
           <img
             src={value}
@@ -280,7 +280,7 @@ export default function OrdersManager() {
     // Legacy base64 — image
     if (isBase64Img(value)) {
       return (
-        <div key={fieldName} className="space-y-2 col-span-2">
+        <div key={fieldName} className="space-y-2">
           <span className="font-medium text-gray-700 block">{fieldName}:</span>
           <img
             src={value}
@@ -490,7 +490,7 @@ export default function OrdersManager() {
                           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                             Customer Details
                           </h4>
-                          <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                          <div className="flex flex-col gap-3 text-sm">
                             {service?.fields?.length > 0
                               ? service.fields.map((field) =>
                                   renderFieldValue(

@@ -7,7 +7,7 @@ import { supabase } from "./supabase";
 export const uploadImage = async (file, bucketName = "service-images") => {
   try {
     const options = {
-      maxSizeMB: 1,
+      maxSizeMB: 0.5,
       maxWidthOrHeight: 1920,
       useWebWorker: true,
     };
@@ -47,8 +47,8 @@ export const uploadOrderFile = async (file) => {
     // Compress images before upload
     if (file.type.startsWith("image/")) {
       const options = {
-        maxSizeMB: 0.8,
-        maxWidthOrHeight: 1600,
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1920,
         useWebWorker: true,
       };
       fileToUpload = await imageCompression(file, options);
