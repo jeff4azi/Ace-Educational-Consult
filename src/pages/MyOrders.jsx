@@ -264,16 +264,15 @@ function OrderCard({ record, onRemove }) {
                       download={name}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 hover:bg-green-100 transition-colors group"
+                      className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 hover:bg-green-100 transition-colors w-full overflow-hidden"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <i className="fas fa-file-arrow-down text-green-600 shrink-0"></i>
-                        <span className="text-sm text-gray-800 font-medium truncate">
-                          {name}
-                        </span>
-                      </div>
-                      <span className="text-xs text-green-700 font-semibold shrink-0 flex items-center gap-1">
-                        <i className="fas fa-download text-xs"></i> Download
+                      <i className="fas fa-file-arrow-down text-green-600 shrink-0 text-sm"></i>
+                      <span className="text-sm text-gray-800 font-medium truncate min-w-0 flex-1">
+                        {name}
+                      </span>
+                      <span className="text-xs text-green-700 font-semibold shrink-0 flex items-center gap-1 pl-2">
+                        <i className="fas fa-download text-xs"></i>
+                        <span className="hidden sm:inline">Download</span>
                       </span>
                     </a>
                   );

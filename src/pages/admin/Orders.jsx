@@ -3,6 +3,7 @@ import { useAdmin } from "../../contexts/AdminContext";
 import { supabase } from "../../lib/supabase";
 import { uploadDeliverable } from "../../lib/imageUpload";
 import ConfirmModal from "../../components/ConfirmModal";
+import { useLocation } from "react-router-dom";
 
 const PAGE_SIZE = 20;
 
@@ -42,8 +43,11 @@ const STATUS_TABS = [
 export default function OrdersManager() {
   const { services, updateOrderStatus, deleteOrder, refreshOrderSummary } =
     useAdmin();
+  const location = useLocation();
 
-  const [activeStatus, setActiveStatus] = useState("pending_verification");
+  const [activeStatus, setActiveStatus] = useState(
+    () => location.state?.status ?? "pending_verification",
+  );
   const [orders, setOrders] = useState([]);
   const [fetching, setFetching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
