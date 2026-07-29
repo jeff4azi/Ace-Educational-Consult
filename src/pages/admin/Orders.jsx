@@ -7,6 +7,12 @@ const PAGE_SIZE = 20;
 
 const STATUS_TABS = [
   {
+    key: "pending_verification",
+    label: "Needs Verification",
+    badge: "bg-purple-100 text-purple-800",
+    dot: "bg-purple-500",
+  },
+  {
     key: "pending",
     label: "Pending",
     badge: "bg-orange-100 text-orange-800",
@@ -36,7 +42,7 @@ export default function OrdersManager() {
   const { services, updateOrderStatus, deleteOrder, refreshOrderSummary } =
     useAdmin();
 
-  const [activeStatus, setActiveStatus] = useState("pending");
+  const [activeStatus, setActiveStatus] = useState("pending_verification");
   const [orders, setOrders] = useState([]);
   const [fetching, setFetching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -83,13 +89,15 @@ export default function OrdersManager() {
   const fetchOrderDetail = async (orderId) => {
     const { data, error } = await supabase
       .from("orders")
-      .select("user_data")
+      .select("user_data, receipt_url")
       .eq("id", orderId)
       .single();
     if (!error && data) {
       setOrders((prev) =>
         prev.map((o) =>
-          o.id === orderId ? { ...o, user_data: data.user_data } : o,
+          o.id === orderId
+            ? { ...o, user_data: data.user_data, receipt_url: data.receipt_url }
+            : o,
         ),
       );
     }
@@ -460,6 +468,9 @@ export default function OrdersManager() {
                         }
                         className="px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] bg-white"
                       >
+                        <option value="pending_verification">
+                          Needs Verification
+                        </option>
                         <option value="pending">Pending</option>
                         <option value="processing">Processing</option>
                         <option value="completed">Completed</option>
@@ -502,6 +513,50 @@ export default function OrdersManager() {
                                   ([key, val]) => renderFieldValue(key, val),
                                 )}
                           </div>
+
+                          {/* Receipt / Proof of Payment */}
+                          {order.receipt_url && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                                Proof of Payment
+                              </h4>
+                              {isImageUrl(order.receipt_url) ? (
+                                <div className="space-y-2">
+                                  <img
+                                    src={order.receipt_url}
+                                    alt="Payment receipt"
+                                    loading="lazy"
+                                    className="max-h-64 object-contain rounded-xl border border-gray-200"
+                                  />
+                                  <button
+                                    onClick={() =>
+                                      downloadFromUrl(
+                                        order.receipt_url,
+                                        "receipt",
+                                      )
+                                    }
+                                    className="bg-[#4169E1] hover:bg-[#3658c9] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                  >
+                                    <i className="fas fa-download"></i> Download
+                                    Receipt
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    downloadFromUrl(
+                                      order.receipt_url,
+                                      "receipt",
+                                    )
+                                  }
+                                  className="bg-[#4169E1] hover:bg-[#3658c9] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                >
+                                  <i className="fas fa-download"></i> Download
+                                  Receipt
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </>
                       )}
                     </div>

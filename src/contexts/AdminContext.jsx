@@ -16,8 +16,21 @@ export function AdminProvider({ children }) {
   // Shape: { counts: { pending, processing, completed, cancelled, total },
   //          recent: { pending: [], processing: [], completed: [], cancelled: [] } }
   const [orderSummary, setOrderSummary] = useState({
-    counts: { pending: 0, processing: 0, completed: 0, cancelled: 0, total: 0 },
-    recent: { pending: [], processing: [], completed: [], cancelled: [] },
+    counts: {
+      pending_verification: 0,
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      cancelled: 0,
+      total: 0,
+    },
+    recent: {
+      pending_verification: [],
+      pending: [],
+      processing: [],
+      completed: [],
+      cancelled: [],
+    },
   });
 
   // Check session and load data on mount
@@ -170,6 +183,7 @@ export function AdminProvider({ children }) {
 
     if (!error && data) {
       const counts = {
+        pending_verification: 0,
         pending: 0,
         processing: 0,
         completed: 0,
@@ -177,6 +191,7 @@ export function AdminProvider({ children }) {
         total: data.length,
       };
       const recent = {
+        pending_verification: [],
         pending: [],
         processing: [],
         completed: [],
@@ -447,7 +462,8 @@ export function AdminProvider({ children }) {
         order_id: order.orderId,
         service_id: order.serviceId,
         user_data: order.formData,
-        status: "pending",
+        receipt_url: order.receiptUrl || null,
+        status: "pending_verification",
       })
       .select()
       .single();
@@ -464,32 +480,34 @@ export function AdminProvider({ children }) {
 
   const deleteOrder = async (id) => {
     try {
-      // Fetch user_data first so we can clean up any uploaded files
+      // Fetch user_data and receipt_url so we can clean up any uploaded files
       const { data: order } = await supabase
         .from("orders")
-        .select("user_data")
+        .select("user_data, receipt_url")
         .eq("id", id)
         .single();
 
-      if (order?.user_data) {
-        // Collect all values that are order-files storage URLs
-        const filePaths = Object.values(order.user_data)
-          .filter(
-            (val) => typeof val === "string" && val.includes("/order-files/"),
-          )
-          .map((url) => {
-            try {
-              // Extract the storage path after "/order-files/"
-              const match = url.match(/\/order-files\/(.+)$/);
-              return match ? match[1] : null;
-            } catch {
-              return null;
-            }
-          })
-          .filter(Boolean);
+      if (order) {
+        const urlsToDelete = [];
 
-        if (filePaths.length > 0) {
-          await supabase.storage.from("order-files").remove(filePaths);
+        // Collect order-files storage URLs from user_data
+        if (order.user_data) {
+          Object.values(order.user_data).forEach((val) => {
+            if (typeof val === "string" && val.includes("/order-files/")) {
+              const match = val.match(/\/order-files\/(.+)$/);
+              if (match) urlsToDelete.push(match[1]);
+            }
+          });
+        }
+
+        // Collect receipt URL
+        if (order.receipt_url && order.receipt_url.includes("/order-files/")) {
+          const match = order.receipt_url.match(/\/order-files\/(.+)$/);
+          if (match) urlsToDelete.push(match[1]);
+        }
+
+        if (urlsToDelete.length > 0) {
+          await supabase.storage.from("order-files").remove(urlsToDelete);
         }
       }
 

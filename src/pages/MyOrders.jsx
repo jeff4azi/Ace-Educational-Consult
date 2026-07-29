@@ -4,15 +4,25 @@ import { supabase } from "../lib/supabase";
 import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
 
 const LS_KEY = "ace_order_ids";
+const PENDING_ORDER_KEY = "ace_pending_order";
 
 const STATUS_CONFIG = {
+  pending_verification: {
+    label: "Pending Verification",
+    icon: "fa-file-invoice",
+    badge: "bg-purple-100 text-purple-700 border border-purple-200",
+    bar: "bg-purple-500",
+    description:
+      "Your payment receipt has been submitted and is awaiting verification by our team.",
+    step: 1,
+  },
   pending: {
     label: "Pending",
     icon: "fa-hourglass-half",
     badge: "bg-orange-100 text-orange-700 border border-orange-200",
     bar: "bg-orange-400",
-    description: "Your order has been received and is awaiting review.",
-    step: 1,
+    description: "Your order has been received and is awaiting processing.",
+    step: 2,
   },
   processing: {
     label: "Processing",
@@ -20,7 +30,7 @@ const STATUS_CONFIG = {
     badge: "bg-blue-100 text-blue-700 border border-blue-200",
     bar: "bg-blue-500",
     description: "We are actively working on your order.",
-    step: 2,
+    step: 3,
   },
   completed: {
     label: "Completed",
@@ -28,7 +38,7 @@ const STATUS_CONFIG = {
     badge: "bg-green-100 text-green-700 border border-green-200",
     bar: "bg-green-500",
     description: "Your order has been completed successfully.",
-    step: 3,
+    step: 4,
   },
   cancelled: {
     label: "Cancelled",
@@ -41,7 +51,7 @@ const STATUS_CONFIG = {
   },
 };
 
-const STEPS = ["pending", "processing", "completed"];
+const STEPS = ["pending_verification", "pending", "processing", "completed"];
 
 function ProgressBar({ status }) {
   if (status === "cancelled") {
@@ -65,9 +75,7 @@ function ProgressBar({ status }) {
           return (
             <div key={s} className="flex items-center flex-1 last:flex-none">
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                  done ? `${cfg.bar} text-white` : "bg-gray-200 text-gray-400"
-                }`}
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${done ? `${cfg.bar} text-white` : "bg-gray-200 text-gray-400"}`}
               >
                 {done && stepNum < currentStep ? (
                   <i className="fas fa-check text-[10px]" />
@@ -90,7 +98,7 @@ function ProgressBar({ status }) {
             key={s}
             className={`text-[10px] font-medium ${s === status ? "text-gray-800" : "text-gray-400"}`}
           >
-            {STATUS_CONFIG[s].label}
+            {STATUS_CONFIG[s].label.split(" ")[0]}
           </span>
         ))}
       </div>
@@ -134,7 +142,8 @@ function OrderCard({ record, onRemove }) {
     );
   }
 
-  const cfg = STATUS_CONFIG[record.order.status] || STATUS_CONFIG.pending;
+  const cfg =
+    STATUS_CONFIG[record.order.status] || STATUS_CONFIG.pending_verification;
   const createdAt = record.order.created_at
     ? new Date(record.order.created_at).toLocaleDateString("en-GB", {
         day: "numeric",
@@ -143,16 +152,18 @@ function OrderCard({ record, onRemove }) {
       })
     : null;
 
-  // Filter out data URL fields from user_data for display
+  // Filter out URLs and data URIs from display (they're files, not text)
   const displayData = Object.entries(record.order.user_data || {}).filter(
-    ([, v]) => v && !(typeof v === "string" && v.startsWith("data:")),
+    ([, v]) =>
+      v &&
+      typeof v === "string" &&
+      !v.startsWith("data:") &&
+      !v.startsWith("http"),
   );
 
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-      {/* Top accent bar */}
       <div className={`h-1 w-full ${cfg.bar}`} />
-
       <div className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -200,26 +211,30 @@ function OrderCard({ record, onRemove }) {
           </p>
         )}
 
-        {/* Expandable details */}
-        <button
-          onClick={() => setExpanded((p) => !p)}
-          className="mt-4 text-sm text-[#4169E1] font-medium flex items-center gap-1 hover:underline"
-        >
-          <i className={`fas fa-chevron-${expanded ? "up" : "down"} text-xs`} />
-          {expanded ? "Hide details" : "View order details"}
-        </button>
-
-        {expanded && displayData.length > 0 && (
-          <div className="mt-3 bg-gray-50 rounded-xl p-4 space-y-2">
-            {displayData.map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-2 text-sm">
-                <span className="text-gray-500 shrink-0">{k}</span>
-                <span className="text-gray-800 font-medium text-right break-all">
-                  {v}
-                </span>
+        {displayData.length > 0 && (
+          <>
+            <button
+              onClick={() => setExpanded((p) => !p)}
+              className="mt-4 text-sm text-[#4169E1] font-medium flex items-center gap-1 hover:underline"
+            >
+              <i
+                className={`fas fa-chevron-${expanded ? "up" : "down"} text-xs`}
+              />
+              {expanded ? "Hide details" : "View order details"}
+            </button>
+            {expanded && (
+              <div className="mt-3 bg-gray-50 rounded-xl p-4 space-y-2">
+                {displayData.map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-2 text-sm">
+                    <span className="text-gray-500 shrink-0">{k}</span>
+                    <span className="text-gray-800 font-medium text-right break-all">
+                      {v}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -228,6 +243,17 @@ function OrderCard({ record, onRemove }) {
 
 export default function MyOrders() {
   const navigate = useNavigate();
+
+  // Check for an unsubmitted (pending) order saved in localStorage
+  const [pendingOrder, setPendingOrder] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PENDING_ORDER_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [orderIds, setOrderIds] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
@@ -241,7 +267,6 @@ export default function MyOrders() {
   const [manualError, setManualError] = useState("");
   const [manualLoading, setManualLoading] = useState(false);
 
-  // Fetch all stored order IDs from Supabase
   useEffect(() => {
     if (orderIds.length === 0) {
       setLoading(false);
@@ -249,22 +274,22 @@ export default function MyOrders() {
     }
     const fetchOrders = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("orders")
         .select("*, service:services(name)")
         .in("order_id", orderIds);
 
       const foundIds = new Set((data || []).map((o) => o.order_id));
-
       const results = orderIds.map((id) => {
         if (foundIds.has(id)) {
-          const order = data.find((o) => o.order_id === id);
-          return { orderId: id, order, deleted: false };
+          return {
+            orderId: id,
+            order: data.find((o) => o.order_id === id),
+            deleted: false,
+          };
         }
         return { orderId: id, order: null, deleted: true };
       });
-
-      // Most recent first
       setRecords(results.reverse());
       setLoading(false);
     };
@@ -276,6 +301,11 @@ export default function MyOrders() {
     setOrderIds(updated);
     localStorage.setItem(LS_KEY, JSON.stringify(updated));
     setRecords((prev) => prev.filter((r) => r.orderId !== id));
+  };
+
+  const dismissPendingOrder = () => {
+    localStorage.removeItem(PENDING_ORDER_KEY);
+    setPendingOrder(null);
   };
 
   const handleManualLookup = async (e) => {
@@ -313,7 +343,6 @@ export default function MyOrders() {
   return (
     <div className="min-h-screen bg-gray-50 py-24 overflow-x-hidden">
       <div className="max-w-2xl mx-auto px-4">
-        {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <img src={AceLogo} alt="Ace Educational Consult" className="h-16" />
         </div>
@@ -331,6 +360,52 @@ export default function MyOrders() {
             Track the status of your service requests
           </p>
         </div>
+
+        {/* ── Unfinished order banner ────────────────────────────────────── */}
+        {pendingOrder && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+                  <i className="fas fa-clock text-amber-500 text-lg" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    You have an unfinished order
+                  </p>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    <span className="font-medium">
+                      {pendingOrder.service?.name}
+                    </span>{" "}
+                    — payment not yet submitted
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={dismissPendingOrder}
+                className="text-gray-300 hover:text-gray-500 transition-colors shrink-0"
+              >
+                <i className="fas fa-times" />
+              </button>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() =>
+                  navigate("/payment", { state: { pendingOrder } })
+                }
+                className="flex-1 bg-[#4169E1] hover:bg-[#3658c9] text-white py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <i className="fas fa-arrow-right"></i> Continue to Payment
+              </button>
+              <button
+                onClick={dismissPendingOrder}
+                className="px-4 py-2.5 border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 rounded-xl text-sm font-medium transition-all"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Manual lookup */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
@@ -387,8 +462,8 @@ export default function MyOrders() {
               No orders yet
             </h3>
             <p className="text-gray-400 text-sm max-w-xs mx-auto mb-6">
-              Orders you place will appear here automatically, or you can look
-              one up using its Order ID above.
+              Orders you place will appear here automatically, or look one up
+              using its Order ID above.
             </p>
             <button
               onClick={() => navigate("/")}

@@ -3,10 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useAdmin } from "../contexts/AdminContext";
 import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
 
+const PENDING_ORDER_KEY = "ace_pending_order";
+
 export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasPendingOrder, setHasPendingOrder] = useState(false);
   const statsRef = useRef(null);
   const navigate = useNavigate();
   const {
@@ -43,6 +46,21 @@ export default function HomePage() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Check for an unfinished pending order in localStorage
+  useEffect(() => {
+    const check = () => {
+      try {
+        setHasPendingOrder(!!localStorage.getItem(PENDING_ORDER_KEY));
+      } catch {
+        setHasPendingOrder(false);
+      }
+    };
+    check();
+    // Re-check whenever the tab regains focus (user returns from another tab)
+    window.addEventListener("focus", check);
+    return () => window.removeEventListener("focus", check);
   }, []);
 
   useEffect(() => {
@@ -933,9 +951,12 @@ export default function HomePage() {
         className="fixed bottom-28 right-6 z-50 group"
         aria-label="Track my orders"
       >
-        <div className="flex items-center gap-2 bg-[#4169E1] hover:bg-[#3658c9] text-white pl-4 pr-5 py-3 rounded-full shadow-2xl hover:scale-105 transition-all">
+        <div className="relative flex items-center gap-2 bg-[#4169E1] hover:bg-[#3658c9] text-white pl-4 pr-5 py-3 rounded-full shadow-2xl hover:scale-105 transition-all">
           <i className="fas fa-receipt text-lg"></i>
           <span className="text-sm font-semibold">My Orders</span>
+          {hasPendingOrder && (
+            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+          )}
         </div>
       </button>
 
@@ -950,8 +971,8 @@ export default function HomePage() {
           <i className="fab fa-whatsapp"></i>
         </div>
         <div className="absolute bottom-full right-0 mb-3 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-  Need Help? Chat with us!
-</div>
+          Need Help? Chat with us!
+        </div>
       </a>
     </div>
   );

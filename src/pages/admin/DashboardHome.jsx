@@ -32,6 +32,12 @@ export default function DashboardHome() {
       color: "bg-red-500",
     },
     {
+      label: "Needs Verification",
+      value: counts.pending_verification,
+      icon: "fa-file-invoice",
+      color: "bg-purple-500",
+    },
+    {
       label: "Pending Orders",
       value: counts.pending,
       icon: "fa-hourglass-half",
@@ -64,6 +70,10 @@ export default function DashboardHome() {
   ];
 
   const statusConfig = {
+    pending_verification: {
+      label: "Needs Verification",
+      badge: "bg-purple-100 text-purple-800",
+    },
     pending: { label: "Pending", badge: "bg-orange-100 text-orange-800" },
     processing: { label: "Processing", badge: "bg-blue-100 text-blue-800" },
     completed: { label: "Completed", badge: "bg-green-100 text-green-800" },
@@ -134,7 +144,16 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* Order Status Panels */}
+      {/* Needs Verification — highlighted at the top */}
+      <div className="mb-6">
+        <OrderList
+          title="🔍 Needs Verification"
+          orderList={recent.pending_verification ?? []}
+          emptyText="No orders awaiting verification"
+        />
+      </div>
+
+      {/* Other Order Status Panels */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <OrderList
           title="Pending Orders"

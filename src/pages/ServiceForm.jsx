@@ -1,42 +1,31 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAdmin } from "../contexts/AdminContext";
 import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
 import { uploadOrderFile } from "../lib/imageUpload";
+
+const PENDING_ORDER_KEY = "ace_pending_order";
 
 export default function ServiceForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addOrder } = useAdmin();
   const [form, setForm] = useState({});
   const [filePreviews, setFilePreviews] = useState({});
   const [uploading, setUploading] = useState({});
   const [uploadErrors, setUploadErrors] = useState({});
 
-  const generateOrderId = () => {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    return `ACE-${timestamp}-${random}`;
-  };
-
   const handleFileChange = async (fieldName, file) => {
     if (!file) return;
 
-    // Show a local preview immediately (only for images)
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onload = (e) =>
         setFilePreviews((prev) => ({ ...prev, [fieldName]: e.target.result }));
       reader.readAsDataURL(file);
     } else {
-      // For non-image files show the filename as the "preview"
       setFilePreviews((prev) => ({ ...prev, [fieldName]: file.name }));
     }
 
-    // Clear any previous error for this field
     setUploadErrors((prev) => ({ ...prev, [fieldName]: null }));
-
-    // Mark field as uploading and clear the previous value
     setUploading((prev) => ({ ...prev, [fieldName]: true }));
     setForm((prev) => ({ ...prev, [fieldName]: null }));
 
@@ -57,40 +46,34 @@ export default function ServiceForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Block submission if any file is still uploading
     if (Object.values(uploading).some(Boolean)) {
       alert("Please wait for all files to finish uploading.");
       return;
     }
 
-    const newOrderId = generateOrderId();
-    addOrder({
-      orderId: newOrderId,
-      serviceId: location.state?.service.id,
+    const service = location.state?.service;
+
+    // Save pending order to localStorage — order is NOT created in DB yet.
+    // The order will only be created after the user uploads their payment receipt.
+    const pendingOrder = {
+      serviceId: service.id,
+      service: {
+        id: service.id,
+        name: service.name,
+        price: service.price,
+        fields: service.fields,
+      },
       formData: form,
-    });
+      savedAt: Date.now(),
+    };
 
     try {
-      const existing = JSON.parse(
-        localStorage.getItem("ace_order_ids") || "[]",
-      );
-      if (!existing.includes(newOrderId)) {
-        localStorage.setItem(
-          "ace_order_ids",
-          JSON.stringify([...existing, newOrderId]),
-        );
-      }
+      localStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(pendingOrder));
     } catch {
-      localStorage.setItem("ace_order_ids", JSON.stringify([newOrderId]));
+      // localStorage might be full — proceed anyway, state will carry the data
     }
 
-    navigate("/payment", {
-      state: {
-        orderId: newOrderId,
-        service: location.state?.service,
-        formData: form,
-      },
-    });
+    navigate("/payment", { state: { pendingOrder } });
   };
 
   if (!location.state?.service) {
@@ -105,9 +88,11 @@ export default function ServiceForm() {
     const isUploading = uploading[field.name];
     const uploadError = uploadErrors[field.name];
     const preview = filePreviews[field.name];
-
     const handleChange = (val) =>
       setForm((prev) => ({ ...prev, [field.name]: val }));
+
+    const inputClass =
+      "w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20";
 
     switch (field.type) {
       case "textarea":
@@ -122,7 +107,7 @@ export default function ServiceForm() {
               value={value}
               onChange={(e) => handleChange(e.target.value)}
               rows={4}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+              className={inputClass}
             />
           </div>
         );
@@ -139,13 +124,12 @@ export default function ServiceForm() {
               accept="image/*"
               required={field.required && !form[field.name]}
               onChange={(e) => handleFileChange(field.name, e.target.files[0])}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+              className={inputClass}
             />
             {isUploading && (
-              <div className="flex items-center gap-2 text-blue-600 text-sm">
-                <i className="fas fa-spinner fa-spin"></i>
-                <span>Uploading image...</span>
-              </div>
+              <p className="text-blue-600 text-sm flex items-center gap-2">
+                <i className="fas fa-spinner fa-spin"></i> Uploading image...
+              </p>
             )}
             {uploadError && (
               <p className="text-red-500 text-sm">{uploadError}</p>
@@ -176,13 +160,12 @@ export default function ServiceForm() {
               type="file"
               required={field.required && !form[field.name]}
               onChange={(e) => handleFileChange(field.name, e.target.files[0])}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+              className={inputClass}
             />
             {isUploading && (
-              <div className="flex items-center gap-2 text-blue-600 text-sm">
-                <i className="fas fa-spinner fa-spin"></i>
-                <span>Uploading file...</span>
-              </div>
+              <p className="text-blue-600 text-sm flex items-center gap-2">
+                <i className="fas fa-spinner fa-spin"></i> Uploading file...
+              </p>
             )}
             {uploadError && (
               <p className="text-red-500 text-sm">{uploadError}</p>
@@ -213,7 +196,7 @@ export default function ServiceForm() {
               required={field.required}
               value={value}
               onChange={(e) => handleChange(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+              className={inputClass}
             />
           </div>
         );
@@ -230,12 +213,12 @@ export default function ServiceForm() {
               required={field.required}
               value={value}
               onChange={(e) => handleChange(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+              className={inputClass}
             />
           </div>
         );
 
-      default: // text
+      default:
         return (
           <div key={index} className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
@@ -247,7 +230,7 @@ export default function ServiceForm() {
               required={field.required}
               value={value}
               onChange={(e) => handleChange(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+              className={inputClass}
             />
           </div>
         );
@@ -288,8 +271,7 @@ export default function ServiceForm() {
             >
               {anyUploading ? (
                 <>
-                  <i className="fas fa-spinner fa-spin"></i>
-                  Uploading files...
+                  <i className="fas fa-spinner fa-spin"></i> Uploading files...
                 </>
               ) : (
                 "Continue to Payment"
