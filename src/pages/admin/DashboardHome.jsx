@@ -147,7 +147,7 @@ export default function DashboardHome() {
       {/* Needs Verification — highlighted at the top */}
       <div className="mb-6">
         <OrderList
-          title="🔍 Needs Verification"
+          title="Needs Verification"
           orderList={recent.pending_verification ?? []}
           emptyText="No orders awaiting verification"
         />
