@@ -2,15 +2,16 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAdmin } from "../contexts/AdminContext";
 import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
-import imageCompression from "browser-image-compression";
+import { uploadOrderFile } from "../lib/imageUpload";
 
 export default function ServiceForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addOrder, siteSettings } = useAdmin();
+  const { addOrder } = useAdmin();
   const [form, setForm] = useState({});
-  const [filePreviews, setFilePreviews] = useState({}); // key: field name, value: data URL
-  const [orderId, setOrderId] = useState(null);
+  const [filePreviews, setFilePreviews] = useState({});
+  const [uploading, setUploading] = useState({});
+  const [uploadErrors, setUploadErrors] = useState({});
 
   const generateOrderId = () => {
     const timestamp = Date.now();
@@ -19,46 +20,56 @@ export default function ServiceForm() {
   };
 
   const handleFileChange = async (fieldName, file) => {
-    if (file) {
-      try {
-        // Compress image if it's an image file
-        let processedFile = file;
-        if (file.type.startsWith("image/")) {
-          const options = {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
-            useWebWorker: true,
-          };
-          processedFile = await imageCompression(file, options);
-        }
+    if (!file) return;
 
-        // Create preview
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setFilePreviews((prev) => ({
-            ...prev,
-            [fieldName]: event.target.result,
-          }));
-          setForm((prev) => ({ ...prev, [fieldName]: event.target.result }));
-        };
-        reader.readAsDataURL(processedFile);
-      } catch (error) {
-        console.error("Error processing file:", error);
-        alert("Error processing file. Please try again.");
-      }
+    // Show a local preview immediately (only for images)
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (e) =>
+        setFilePreviews((prev) => ({ ...prev, [fieldName]: e.target.result }));
+      reader.readAsDataURL(file);
+    } else {
+      // For non-image files show the filename as the "preview"
+      setFilePreviews((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+
+    // Clear any previous error for this field
+    setUploadErrors((prev) => ({ ...prev, [fieldName]: null }));
+
+    // Mark field as uploading and clear the previous value
+    setUploading((prev) => ({ ...prev, [fieldName]: true }));
+    setForm((prev) => ({ ...prev, [fieldName]: null }));
+
+    try {
+      const publicUrl = await uploadOrderFile(file);
+      setForm((prev) => ({ ...prev, [fieldName]: publicUrl }));
+    } catch {
+      setUploadErrors((prev) => ({
+        ...prev,
+        [fieldName]: "Upload failed. Please try again.",
+      }));
+      setFilePreviews((prev) => ({ ...prev, [fieldName]: null }));
+    } finally {
+      setUploading((prev) => ({ ...prev, [fieldName]: false }));
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Block submission if any file is still uploading
+    if (Object.values(uploading).some(Boolean)) {
+      alert("Please wait for all files to finish uploading.");
+      return;
+    }
+
     const newOrderId = generateOrderId();
-    setOrderId(newOrderId);
     addOrder({
       orderId: newOrderId,
       serviceId: location.state?.service.id,
       formData: form,
     });
-    // Persist order ID in localStorage so the user can track it later
+
     try {
       const existing = JSON.parse(
         localStorage.getItem("ace_order_ids") || "[]",
@@ -72,6 +83,7 @@ export default function ServiceForm() {
     } catch {
       localStorage.setItem("ace_order_ids", JSON.stringify([newOrderId]));
     }
+
     navigate("/payment", {
       state: {
         orderId: newOrderId,
@@ -90,9 +102,12 @@ export default function ServiceForm() {
 
   const renderField = (field, index) => {
     const value = form[field.name] || "";
-    const handleChange = (val) => {
+    const isUploading = uploading[field.name];
+    const uploadError = uploadErrors[field.name];
+    const preview = filePreviews[field.name];
+
+    const handleChange = (val) =>
       setForm((prev) => ({ ...prev, [field.name]: val }));
-    };
 
     switch (field.type) {
       case "textarea":
@@ -111,21 +126,7 @@ export default function ServiceForm() {
             />
           </div>
         );
-      case "file":
-        return (
-          <div key={index} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              {field.name}
-              {field.required ? " *" : ""}
-            </label>
-            <input
-              type="file"
-              required={field.required}
-              onChange={(e) => handleFileChange(field.name, e.target.files[0])}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
-            />
-          </div>
-        );
+
       case "image":
         return (
           <div key={index} className="space-y-2">
@@ -136,21 +137,70 @@ export default function ServiceForm() {
             <input
               type="file"
               accept="image/*"
-              required={field.required}
+              required={field.required && !form[field.name]}
               onChange={(e) => handleFileChange(field.name, e.target.files[0])}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
             />
-            {filePreviews[field.name] && (
-              <div className="mt-4">
-                <img
-                  src={filePreviews[field.name]}
-                  alt={field.name}
-                  className="w-full max-h-64 object-contain rounded-xl border border-gray-200"
-                />
+            {isUploading && (
+              <div className="flex items-center gap-2 text-blue-600 text-sm">
+                <i className="fas fa-spinner fa-spin"></i>
+                <span>Uploading image...</span>
               </div>
+            )}
+            {uploadError && (
+              <p className="text-red-500 text-sm">{uploadError}</p>
+            )}
+            {preview && !isUploading && (
+              <img
+                src={preview}
+                alt={field.name}
+                className="w-full max-h-48 object-contain rounded-xl border border-gray-200"
+              />
+            )}
+            {form[field.name] && !isUploading && (
+              <p className="text-green-600 text-sm flex items-center gap-1">
+                <i className="fas fa-check-circle"></i> Image uploaded
+              </p>
             )}
           </div>
         );
+
+      case "file":
+        return (
+          <div key={index} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              {field.name}
+              {field.required ? " *" : ""}
+            </label>
+            <input
+              type="file"
+              required={field.required && !form[field.name]}
+              onChange={(e) => handleFileChange(field.name, e.target.files[0])}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
+            />
+            {isUploading && (
+              <div className="flex items-center gap-2 text-blue-600 text-sm">
+                <i className="fas fa-spinner fa-spin"></i>
+                <span>Uploading file...</span>
+              </div>
+            )}
+            {uploadError && (
+              <p className="text-red-500 text-sm">{uploadError}</p>
+            )}
+            {preview && !isUploading && (
+              <p className="text-gray-600 text-sm flex items-center gap-2">
+                <i className="fas fa-file"></i>
+                <span className="truncate max-w-xs">{preview}</span>
+              </p>
+            )}
+            {form[field.name] && !isUploading && (
+              <p className="text-green-600 text-sm flex items-center gap-1">
+                <i className="fas fa-check-circle"></i> File uploaded
+              </p>
+            )}
+          </div>
+        );
+
       case "number":
         return (
           <div key={index} className="space-y-2">
@@ -167,6 +217,7 @@ export default function ServiceForm() {
             />
           </div>
         );
+
       case "email":
         return (
           <div key={index} className="space-y-2">
@@ -183,6 +234,7 @@ export default function ServiceForm() {
             />
           </div>
         );
+
       default: // text
         return (
           <div key={index} className="space-y-2">
@@ -201,6 +253,8 @@ export default function ServiceForm() {
         );
     }
   };
+
+  const anyUploading = Object.values(uploading).some(Boolean);
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden py-24">
@@ -229,9 +283,17 @@ export default function ServiceForm() {
             {service.fields?.map((field, index) => renderField(field, index))}
             <button
               type="submit"
-              className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white py-4 rounded-xl font-semibold text-lg transition-all hover:shadow-xl hover:scale-105"
+              disabled={anyUploading}
+              className="w-full bg-[#4169E1] hover:bg-[#3658c9] disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-4 rounded-xl font-semibold text-lg transition-all hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
             >
-              Continue to Payment
+              {anyUploading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  Uploading files...
+                </>
+              ) : (
+                "Continue to Payment"
+              )}
             </button>
           </form>
         </div>

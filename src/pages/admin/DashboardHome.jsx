@@ -1,7 +1,7 @@
 import { useAdmin } from "../../contexts/AdminContext";
 
 export default function DashboardHome() {
-  const { services, testimonials, contactMessages, orders } = useAdmin();
+  const { services, testimonials, contactMessages, orderSummary } = useAdmin();
 
   const totalServices = Object.values(services).reduce(
     (sum, arr) => sum + arr.length,
@@ -10,10 +10,7 @@ export default function DashboardHome() {
   const pendingTestimonials = testimonials.filter((t) => !t.approved).length;
   const unreadMessages = contactMessages.filter((m) => !m.read).length;
 
-  const pendingOrders = orders.filter((o) => o.status === "pending");
-  const processingOrders = orders.filter((o) => o.status === "processing");
-  const completedOrders = orders.filter((o) => o.status === "completed");
-  const cancelledOrders = orders.filter((o) => o.status === "cancelled");
+  const { counts, recent } = orderSummary;
 
   const stats = [
     {
@@ -36,31 +33,31 @@ export default function DashboardHome() {
     },
     {
       label: "Pending Orders",
-      value: pendingOrders.length,
+      value: counts.pending,
       icon: "fa-hourglass-half",
       color: "bg-orange-500",
     },
     {
       label: "Processing Orders",
-      value: processingOrders.length,
+      value: counts.processing,
       icon: "fa-spinner",
       color: "bg-blue-400",
     },
     {
       label: "Completed Orders",
-      value: completedOrders.length,
+      value: counts.completed,
       icon: "fa-circle-check",
       color: "bg-green-500",
     },
     {
       label: "Cancelled Orders",
-      value: cancelledOrders.length,
+      value: counts.cancelled,
       icon: "fa-circle-xmark",
       color: "bg-red-400",
     },
     {
       label: "Total Orders",
-      value: orders.length,
+      value: counts.total,
       icon: "fa-shopping-cart",
       color: "bg-indigo-500",
     },
@@ -80,32 +77,26 @@ export default function DashboardHome() {
         <p className="text-gray-500 text-sm">{emptyText}</p>
       ) : (
         <div className="space-y-3">
-          {orderList.slice(0, 5).map((order) => (
+          {orderList.map((order) => (
             <div
               key={order.id}
               className="flex items-center justify-between p-3 bg-gray-50 rounded-xl gap-2"
             >
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-gray-900 truncate">
-                  {order.user_data?.fullName || order.user_data?.name || "N/A"}
+                <p className="text-sm text-gray-700 truncate font-medium">
+                  {order.service?.name || "Unknown service"}
                 </p>
-                <p className="text-sm text-gray-500 truncate">
-                  {order.service?.name || "N/A"}
+                <p className="text-xs text-gray-400 truncate">
+                  {order.order_id}
                 </p>
-                <p className="text-xs text-gray-400 truncate">{order.order_id}</p>
               </div>
               <span
-                className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${statusConfig[order.status]?.badge || "bg-gray-100 text-gray-800"}`}
+                className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${statusConfig[order.status]?.badge || "bg-gray-100 text-gray-800"}`}
               >
                 {statusConfig[order.status]?.label || order.status}
               </span>
             </div>
           ))}
-          {orderList.length > 5 && (
-            <p className="text-xs text-gray-400 text-center pt-1">
-              +{orderList.length - 5} more — view in Orders
-            </p>
-          )}
         </div>
       )}
     </div>
@@ -120,7 +111,10 @@ export default function DashboardHome() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-3 md:p-6 rounded-2xl shadow-lg min-w-0">
+          <div
+            key={i}
+            className="bg-white p-3 md:p-6 rounded-2xl shadow-lg min-w-0"
+          >
             <div className="flex items-center gap-2 md:gap-4">
               <div
                 className={`w-9 h-9 md:w-12 md:h-12 ${stat.color} rounded-xl flex items-center justify-center text-white text-sm md:text-xl shrink-0`}
@@ -128,8 +122,12 @@ export default function DashboardHome() {
                 <i className={`fas ${stat.icon}`}></i>
               </div>
               <div className="min-w-0">
-                <p className="text-gray-500 text-xs md:text-sm truncate">{stat.label}</p>
-                <p className="text-xl md:text-3xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-gray-500 text-xs md:text-sm truncate">
+                  {stat.label}
+                </p>
+                <p className="text-xl md:text-3xl font-bold text-gray-900">
+                  {stat.value}
+                </p>
               </div>
             </div>
           </div>
@@ -140,24 +138,24 @@ export default function DashboardHome() {
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <OrderList
           title="Pending Orders"
-          orderList={pendingOrders}
+          orderList={recent.pending}
           emptyText="No pending orders"
         />
         <OrderList
           title="Processing Orders"
-          orderList={processingOrders}
+          orderList={recent.processing}
           emptyText="No orders currently processing"
         />
       </div>
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <OrderList
           title="Completed Orders"
-          orderList={completedOrders}
+          orderList={recent.completed}
           emptyText="No completed orders yet"
         />
         <OrderList
           title="Cancelled Orders"
-          orderList={cancelledOrders}
+          orderList={recent.cancelled}
           emptyText="No cancelled orders"
         />
       </div>

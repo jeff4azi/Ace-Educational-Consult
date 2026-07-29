@@ -11,19 +11,26 @@ export function AdminProvider({ children }) {
   const [services, setServices] = useState({}); // { [categoryId]: [...services] }
   const [testimonials, setTestimonials] = useState([]);
   const [contactMessages, setContactMessages] = useState([]);
-  const [orders, setOrders] = useState([]);
+
+  // Lightweight order summary for the dashboard — no user_data blobs.
+  // Shape: { counts: { pending, processing, completed, cancelled, total },
+  //          recent: { pending: [], processing: [], completed: [], cancelled: [] } }
+  const [orderSummary, setOrderSummary] = useState({
+    counts: { pending: 0, processing: 0, completed: 0, cancelled: 0, total: 0 },
+    recent: { pending: [], processing: [], completed: [], cancelled: [] },
+  });
 
   // Check session and load data on mount
   useEffect(() => {
     const init = async () => {
       try {
-        // First check auth session
+        // Check auth session first
         const {
           data: { session },
         } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
 
-        // Then load public data
+        // Load public data in parallel — these unblock the homepage
         await Promise.all([
           loadSiteSettings(),
           loadServiceCategories(),
@@ -31,14 +38,16 @@ export function AdminProvider({ children }) {
           loadTestimonials(),
         ]);
 
-        // If user is logged in, load admin-only data
+        // Load admin-only data after public data — doesn't block homepage render
         if (session?.user) {
-          await Promise.all([loadContactMessages(), loadOrders()]);
+          Promise.all([loadContactMessages(), loadOrderSummary()]).catch((e) =>
+            console.error("Error loading admin data:", e),
+          );
         }
       } catch (error) {
         console.error("Error initializing:", error);
       } finally {
-        // Set loading to false regardless of success/failure
+        // Public data is ready — unblock the UI
         setLoading(false);
       }
     };
@@ -62,7 +71,7 @@ export function AdminProvider({ children }) {
     const loadAdminData = async () => {
       if (user) {
         try {
-          await Promise.all([loadContactMessages(), loadOrders()]);
+          await Promise.all([loadContactMessages(), loadOrderSummary()]);
         } catch (error) {
           console.error("Error loading admin data:", error);
         }
@@ -152,14 +161,36 @@ export function AdminProvider({ children }) {
     }
   };
 
-  // Load orders
-  const loadOrders = async () => {
+  // Load lightweight order summary — never fetches user_data
+  const loadOrderSummary = async () => {
     const { data, error } = await supabase
       .from("orders")
-      .select("*, service: services(name)")
+      .select("id, order_id, status, created_at, service:services(name)")
       .order("created_at", { ascending: false });
+
     if (!error && data) {
-      setOrders(data);
+      const counts = {
+        pending: 0,
+        processing: 0,
+        completed: 0,
+        cancelled: 0,
+        total: data.length,
+      };
+      const recent = {
+        pending: [],
+        processing: [],
+        completed: [],
+        cancelled: [],
+      };
+
+      data.forEach((o) => {
+        if (counts[o.status] !== undefined) counts[o.status]++;
+        if (recent[o.status] && recent[o.status].length < 5) {
+          recent[o.status].push(o);
+        }
+      });
+
+      setOrderSummary({ counts, recent });
     }
   };
 
@@ -408,32 +439,66 @@ export function AdminProvider({ children }) {
     setContactMessages((prev) => prev.filter((m) => m.id !== id));
   };
 
-  // Orders
+  // Orders — no global state; the Orders page manages its own fetched data
   const addOrder = async (order) => {
     const { data, error } = await supabase
       .from("orders")
       .insert({
         order_id: order.orderId,
-        service_id: order.serviceId, // Use the serviceId passed directly
+        service_id: order.serviceId,
         user_data: order.formData,
         status: "pending",
       })
       .select()
       .single();
-
-    if (!error && data) {
-      setOrders((prev) => [data, ...prev]);
-    }
+    return { data, error };
   };
 
   const updateOrderStatus = async (id, status) => {
-    await supabase.from("orders").update({ status }).eq("id", id);
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    const { error } = await supabase
+      .from("orders")
+      .update({ status })
+      .eq("id", id);
+    return { error };
   };
 
   const deleteOrder = async (id) => {
-    await supabase.from("orders").delete().eq("id", id);
-    setOrders((prev) => prev.filter((o) => o.id !== id));
+    try {
+      // Fetch user_data first so we can clean up any uploaded files
+      const { data: order } = await supabase
+        .from("orders")
+        .select("user_data")
+        .eq("id", id)
+        .single();
+
+      if (order?.user_data) {
+        // Collect all values that are order-files storage URLs
+        const filePaths = Object.values(order.user_data)
+          .filter(
+            (val) => typeof val === "string" && val.includes("/order-files/"),
+          )
+          .map((url) => {
+            try {
+              // Extract the storage path after "/order-files/"
+              const match = url.match(/\/order-files\/(.+)$/);
+              return match ? match[1] : null;
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
+
+        if (filePaths.length > 0) {
+          await supabase.storage.from("order-files").remove(filePaths);
+        }
+      }
+
+      const { error } = await supabase.from("orders").delete().eq("id", id);
+      return { error };
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      return { error };
+    }
   };
 
   return (
@@ -446,7 +511,7 @@ export function AdminProvider({ children }) {
         services,
         testimonials,
         contactMessages,
-        orders,
+        orderSummary,
         loading,
         login,
         logout,
@@ -464,6 +529,7 @@ export function AdminProvider({ children }) {
         addOrder,
         updateOrderStatus,
         deleteOrder,
+        refreshOrderSummary: loadOrderSummary,
       }}
     >
       {children}
