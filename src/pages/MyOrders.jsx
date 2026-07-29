@@ -8,7 +8,7 @@ const PENDING_ORDER_KEY = "ace_pending_order";
 
 const STATUS_CONFIG = {
   pending_verification: {
-    label: "Pending Verification",
+    label: "Verifying",
     icon: "fa-file-invoice",
     badge: "bg-purple-100 text-purple-700 border border-purple-200",
     bar: "bg-purple-500",
