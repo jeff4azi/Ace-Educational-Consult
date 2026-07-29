@@ -939,8 +939,24 @@ export default function HomePage() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>© 2026 Ace Educational Consult. All Rights Reserved.</p>
+          <div className="border-t border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-gray-400">
+              <p>© 2026 Ace Educational Consult. All Rights Reserved.</p>
+
+              <p className="text-center md:text-right text-xs">
+                Website designed & developed by{" "}
+                <span className="font-medium text-white">Code Jeffrey</span>.
+                Need a professional website?{" "}
+                <a
+                  href="https://wa.me/2347015585397"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#ffc517] hover:text-yellow-300 transition-colors font-medium"
+                >
+                  Chat on WhatsApp
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </footer>
