@@ -59,6 +59,9 @@ export default function OrdersManager() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [orderIdToDelete, setOrderIdToDelete] = useState(null);
 
+  // ─── Lightbox State ──────────────────────────────────────────────────────
+  const [lightboxImage, setLightboxImage] = useState(null);
+
   // ─── Fetch ────────────────────────────────────────────────────────────────
 
   const fetchOrders = useCallback(
@@ -234,6 +237,34 @@ export default function OrdersManager() {
     document.body.removeChild(link);
   };
 
+  // ─── Lightbox handlers ──────────────────────────────────────────────────
+
+  const openLightbox = (imageUrl) => {
+    setLightboxImage(imageUrl);
+    document.body.style.overflow = "hidden";
+  };
+
+  const closeLightbox = () => {
+    setLightboxImage(null);
+    document.body.style.overflow = "";
+  };
+
+  const handleLightboxClick = (e) => {
+    if (e.target === e.currentTarget) {
+      closeLightbox();
+    }
+  };
+
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape" && lightboxImage) {
+        closeLightbox();
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [lightboxImage]);
+
   // ─── Field renderer ───────────────────────────────────────────────────────
 
   const renderFieldValue = (fieldName, value) => {
@@ -253,7 +284,8 @@ export default function OrdersManager() {
             src={value}
             alt={fieldName}
             loading="lazy"
-            className="max-h-48 object-contain rounded-xl border border-gray-200"
+            className="max-h-48 object-contain rounded-xl border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+            onClick={() => openLightbox(value)}
           />
           <button
             onClick={() => downloadFromUrl(value, fieldName)}
@@ -285,7 +317,8 @@ export default function OrdersManager() {
             src={value}
             alt={fieldName}
             loading="lazy"
-            className="max-h-48 object-contain rounded-xl border border-gray-200"
+            className="max-h-48 object-contain rounded-xl border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+            onClick={() => openLightbox(value)}
           />
           <button
             onClick={() => downloadBase64(value, fieldName)}
@@ -375,6 +408,11 @@ export default function OrdersManager() {
       }
     };
 
+    const isDeliverableImage = (url) => {
+      if (!url) return false;
+      return isImageUrl(url) || isBase64Img(url);
+    };
+
     return (
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="flex items-center justify-between mb-3">
@@ -422,13 +460,23 @@ export default function OrdersManager() {
                   ? decodeURIComponent(new URL(url).pathname.split("/").pop())
                   : item?.name ||
                     decodeURIComponent(new URL(url).pathname.split("/").pop());
+              const isImg = isDeliverableImage(url);
+              
               return (
                 <div
                   key={i}
                   className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-2.5 gap-2"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <i className="fas fa-file text-[#4169E1] shrink-0 text-sm"></i>
+                    <i className={`${isImg ? 'fas fa-image' : 'fas fa-file'} text-[#4169E1] shrink-0 text-sm`}></i>
+                    {isImg ? (
+                      <img
+                        src={url}
+                        alt={name}
+                        className="h-10 w-10 object-cover rounded-lg border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={() => openLightbox(url)}
+                      />
+                    ) : null}
                     <span className="text-sm text-gray-700 truncate">
                       {name}
                     </span>
@@ -657,7 +705,8 @@ export default function OrdersManager() {
                                     src={order.receipt_url}
                                     alt="Payment receipt"
                                     loading="lazy"
-                                    className="max-h-64 object-contain rounded-xl border border-gray-200"
+                                    className="max-h-64 object-contain rounded-xl border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+                                    onClick={() => openLightbox(order.receipt_url)}
                                   />
                                   <button
                                     onClick={() =>
@@ -721,6 +770,29 @@ export default function OrdersManager() {
         </>
       )}
 
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn"
+          onClick={handleLightboxClick}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <button
+              onClick={closeLightbox}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 text-3xl font-light transition-colors"
+              aria-label="Close lightbox"
+            >
+              ×
+            </button>
+            <img
+              src={lightboxImage}
+              alt="Preview"
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
+
       <ConfirmModal
         isOpen={isConfirmModalOpen}
         onClose={() => {
@@ -731,6 +803,21 @@ export default function OrdersManager() {
         title="Delete Order"
         message="Are you sure you want to delete this order? This action cannot be undone."
       />
+
+      {/* Add animation styles */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }
