@@ -530,6 +530,15 @@ export function AdminProvider({ children }) {
     }
   };
 
+  const findServiceById = (serviceId) => {
+    const id = String(serviceId);
+    for (const categoryServices of Object.values(services)) {
+      const found = categoryServices.find((s) => String(s.id) === id);
+      if (found) return found;
+    }
+    return null;
+  };
+
   return (
     <AdminContext.Provider
       value={{
@@ -559,6 +568,7 @@ export function AdminProvider({ children }) {
         updateOrderStatus,
         deleteOrder,
         refreshOrderSummary: loadOrderSummary,
+        findServiceById,
       }}
     >
       {children}

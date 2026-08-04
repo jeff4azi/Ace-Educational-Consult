@@ -1,17 +1,35 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
 import { uploadOrderFile } from "../lib/imageUpload";
+import { useAdmin } from "../contexts/AdminContext";
 
 const PENDING_ORDER_KEY = "ace_pending_order";
 
 export default function ServiceForm() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { serviceId } = useParams();
+  const { loading, findServiceById } = useAdmin();
   const [form, setForm] = useState({});
   const [filePreviews, setFilePreviews] = useState({});
   const [uploading, setUploading] = useState({});
   const [uploadErrors, setUploadErrors] = useState({});
+  const [resolvedService, setResolvedService] = useState(
+    location.state?.service || null,
+  );
+  const [resolving, setResolving] = useState(
+    !location.state?.service && !!serviceId,
+  );
+
+  useEffect(() => {
+    if (!resolving || loading) return;
+    const found = serviceId ? findServiceById(serviceId) : null;
+    if (found) {
+      setResolvedService(found);
+    }
+    setResolving(false);
+  }, [resolving, loading, serviceId, findServiceById]);
 
   const handleFileChange = async (fieldName, file) => {
     if (!file) return;
@@ -51,7 +69,7 @@ export default function ServiceForm() {
       return;
     }
 
-    const service = location.state?.service;
+    const service = resolvedService;
 
     // Save pending order to localStorage — order is NOT created in DB yet.
     // The order will only be created after the user uploads their payment receipt.
@@ -76,12 +94,23 @@ export default function ServiceForm() {
     navigate("/payment", { state: { pendingOrder } });
   };
 
-  if (!location.state?.service) {
+  if (loading || resolving) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+          <p className="text-gray-600">Loading service...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!resolvedService) {
     navigate("/");
     return null;
   }
 
-  const { service } = location.state;
+  const service = resolvedService;
 
   const renderField = (field, index) => {
     const value = form[field.name] || "";

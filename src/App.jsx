@@ -36,6 +36,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/service-form" element={<ServiceForm />} />
+          <Route path="/service-form/:serviceId" element={<ServiceForm />} />
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/my-orders" element={<MyOrders />} />
           <Route path="/admin/login" element={<AdminLogin />} />

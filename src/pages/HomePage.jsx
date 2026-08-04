@@ -39,6 +39,7 @@ export default function HomePage() {
     rating: 5,
   });
   const [successMsg, setSuccessMsg] = useState("");
+  const [shareToast, setShareToast] = useState("");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -131,6 +132,46 @@ export default function HomePage() {
     setSuccessMsg("Testimonial submitted for approval!");
     setTestimonialForm({ name: "", text: "", rating: 5 });
     setTimeout(() => setSuccessMsg(""), 3000);
+  };
+
+  useEffect(() => {
+    if (shareToast) {
+      const timer = setTimeout(() => setShareToast(""), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [shareToast]);
+
+  const handleShare = async (service, e) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/service-form/${service.id}`;
+    const shareData = {
+      title: `${service.name} - Ace Educational Consult`,
+      text: `Check out this service: ${service.name} - ${service.description}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setShareToast("Shared successfully!");
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareToast("Link copied to clipboard!");
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        setShareToast("Link copied to clipboard!");
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        console.error("Share failed:", err);
+        setShareToast("Couldn't share. Please copy the link manually.");
+      }
+    }
   };
 
   const approvedTestimonials = testimonials.filter((t) => t.approved);
@@ -298,6 +339,14 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Share Toast */}
+      {shareToast && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2">
+          <i className="fas fa-check-circle text-green-400"></i>
+          {shareToast}
+        </div>
+      )}
+
       {/* Hero Section */}
       <section
         id="home"
@@ -455,32 +504,65 @@ export default function HomePage() {
                 {items.map((service, idx) => (
                   <div
                     key={idx}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group flex flex-col"
                   >
-                    <div className="h-48 overflow-hidden">
+                    <div className="relative h-48 overflow-hidden cursor-pointer"
+                      onClick={() =>
+                        navigate("/service-form", { state: { service } })
+                      }
+                    >
                       <img
                         src={service.image}
                         alt={service.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
+                      <button
+                        onClick={(e) => handleShare(service, e)}
+                        className="absolute top-3 right-3 z-10 w-11 h-11 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full flex items-center justify-center text-gray-700 hover:text-[#4169E1] shadow-lg transition-all active:scale-95"
+                        aria-label={`Share ${service.name}`}
+                        title="Share this service"
+                      >
+                        <i className="fas fa-share-nodes"></i>
+                      </button>
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent h-16 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div className="p-6 flex flex-col flex-1">
-                      <h4 className="text-lg font-bold text-gray-900 mb-2">
+                      <h4
+                        className="text-lg font-bold text-gray-900 mb-2 cursor-pointer hover:text-[#4169E1] transition-colors"
+                        onClick={() =>
+                          navigate("/service-form", { state: { service } })
+                        }
+                      >
                         {service.name}
                       </h4>
                       <p className="text-gray-600 text-sm mb-4 flex-1">
                         {service.description}
                       </p>
-                      <div className="text-2xl font-bold text-[#4169E1] mb-4">
-                        {service.price}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-2xl font-bold text-[#4169E1]">
+                          {service.price}
+                        </div>
+                        <a
+                          href={`/service-form/${service.id}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate("/service-form", { state: { service } });
+                          }}
+                          className="text-xs text-gray-400 hover:text-[#4169E1] transition-colors font-medium flex items-center gap-1"
+                          title="Direct link to this service"
+                        >
+                          <i className="fas fa-link"></i>
+                          Direct link
+                        </a>
                       </div>
                       <button
                         onClick={() =>
                           navigate("/service-form", { state: { service } })
                         }
-                        className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white py-3 rounded-xl font-semibold transition-all hover:scale-105"
+                        className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white py-3 rounded-xl font-semibold transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
                       >
-                        Proceed
+                        <i className="fas fa-arrow-right"></i>
+                        Order Now
                       </button>
                     </div>
                   </div>
