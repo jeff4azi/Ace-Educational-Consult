@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 export const config = {
   matcher: ["/", "/service-form/:path*", "/payment", "/my-orders"],
 };
