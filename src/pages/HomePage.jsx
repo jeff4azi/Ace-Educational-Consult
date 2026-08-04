@@ -42,6 +42,39 @@ export default function HomePage() {
   const [shareToast, setShareToast] = useState("");
 
   useEffect(() => {
+    const defaultTitle =
+      "Ace Educational Consult - Your Trusted Partner for Educational & Digital Services";
+    const defaultDescription =
+      "Ace Educational Consult offers premium educational and digital services including admissions processing, document verification, CV writing, online courses, and more.";
+    const url = `${window.location.origin}/`;
+    const image = `${window.location.origin}/android-chrome-512x512.png`;
+
+    document.title = defaultTitle;
+
+    const setMeta = (selector, attr, name, content) => {
+      let el = document.head.querySelector(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        if (attr === "property") el.setAttribute("property", name);
+        else el.setAttribute("name", name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    setMeta('meta[name="description"]', "name", "description", defaultDescription);
+    setMeta('meta[property="og:type"]', "property", "og:type", "website");
+    setMeta('meta[property="og:url"]', "property", "og:url", url);
+    setMeta('meta[property="og:title"]', "property", "og:title", defaultTitle);
+    setMeta('meta[property="og:description"]', "property", "og:description", defaultDescription);
+    setMeta('meta[property="og:image"]', "property", "og:image", image);
+    setMeta('meta[name="twitter:url"]', "name", "twitter:url", url);
+    setMeta('meta[name="twitter:title"]', "name", "twitter:title", defaultTitle);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", defaultDescription);
+    setMeta('meta[name="twitter:image"]', "name", "twitter:image", image);
+  }, []);
+
+  useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };

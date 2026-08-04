@@ -31,6 +31,43 @@ export default function ServiceForm() {
     setResolving(false);
   }, [resolving, loading, serviceId, findServiceById]);
 
+  useEffect(() => {
+    if (!resolvedService) return;
+
+    const service = resolvedService;
+    const title = `${service.name} | Ace Educational Consult`;
+    const description =
+      service.description && service.description.trim().length > 0
+        ? service.description
+        : `${service.name} — Premium educational service at Ace Educational Consult.`;
+    const url = `${window.location.origin}${window.location.pathname}`;
+    const image = service.image || `${window.location.origin}/android-chrome-512x512.png`;
+
+    document.title = title;
+
+    const setMeta = (selector, attr, name, content) => {
+      let el = document.head.querySelector(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        if (attr === "property") el.setAttribute("property", name);
+        else el.setAttribute("name", name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    setMeta('meta[name="description"]', "name", "description", description);
+    setMeta('meta[property="og:type"]', "property", "og:type", "product");
+    setMeta('meta[property="og:url"]', "property", "og:url", url);
+    setMeta('meta[property="og:title"]', "property", "og:title", title);
+    setMeta('meta[property="og:description"]', "property", "og:description", description);
+    setMeta('meta[property="og:image"]', "property", "og:image", image);
+    setMeta('meta[name="twitter:url"]', "name", "twitter:url", url);
+    setMeta('meta[name="twitter:title"]', "name", "twitter:title", title);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", description);
+    setMeta('meta[name="twitter:image"]', "name", "twitter:image", image);
+  }, [resolvedService]);
+
   const handleFileChange = async (fieldName, file) => {
     if (!file) return;
 
