@@ -141,9 +141,34 @@ export default function HomePage() {
     }
   }, [shareToast]);
 
+  const getServiceUrl = (service) =>
+    `${window.location.origin}/service-form/${service.id}`;
+
+  const copyLinkToClipboard = async (service) => {
+    const shareUrl = getServiceUrl(service);
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setShareToast("Link copied to clipboard!");
+      return true;
+    } catch (err) {
+      console.error("Copy failed:", err);
+      setShareToast("Couldn't copy link.");
+      return false;
+    }
+  };
+
   const handleShare = async (service, e) => {
-    e.stopPropagation();
-    const shareUrl = `${window.location.origin}/service-form/${service.id}`;
+    if (e) e.stopPropagation();
+    const shareUrl = getServiceUrl(service);
     const shareData = {
       title: `${service.name} - Ace Educational Consult`,
       text: `Check out this service: ${service.name} - ${service.description}`,
@@ -154,22 +179,12 @@ export default function HomePage() {
       if (navigator.share) {
         await navigator.share(shareData);
         setShareToast("Shared successfully!");
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(shareUrl);
-        setShareToast("Link copied to clipboard!");
       } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = shareUrl;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-        setShareToast("Link copied to clipboard!");
+        await copyLinkToClipboard(service);
       }
     } catch (err) {
       if (err.name !== "AbortError") {
-        console.error("Share failed:", err);
-        setShareToast("Couldn't share. Please copy the link manually.");
+        await copyLinkToClipboard(service);
       }
     }
   };
@@ -507,9 +522,7 @@ export default function HomePage() {
                     className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group flex flex-col"
                   >
                     <div className="relative h-48 overflow-hidden cursor-pointer"
-                      onClick={() =>
-                        navigate("/service-form", { state: { service } })
-                      }
+                      onClick={() => navigate(`/service-form/${service.id}`)}
                     >
                       <img
                         src={service.image}
@@ -529,9 +542,7 @@ export default function HomePage() {
                     <div className="p-6 flex flex-col flex-1">
                       <h4
                         className="text-lg font-bold text-gray-900 mb-2 cursor-pointer hover:text-[#4169E1] transition-colors"
-                        onClick={() =>
-                          navigate("/service-form", { state: { service } })
-                        }
+                        onClick={() => navigate(`/service-form/${service.id}`)}
                       >
                         {service.name}
                       </h4>
@@ -542,23 +553,20 @@ export default function HomePage() {
                         <div className="text-2xl font-bold text-[#4169E1]">
                           {service.price}
                         </div>
-                        <a
-                          href={`/service-form/${service.id}`}
+                        <button
                           onClick={(e) => {
-                            e.preventDefault();
-                            navigate("/service-form", { state: { service } });
+                            e.stopPropagation();
+                            copyLinkToClipboard(service);
                           }}
-                          className="text-xs text-gray-400 hover:text-[#4169E1] transition-colors font-medium flex items-center gap-1"
-                          title="Direct link to this service"
+                          className="text-xs text-gray-400 hover:text-[#4169E1] transition-colors font-medium flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-gray-50 active:scale-95"
+                          title="Copy direct link to this service"
                         >
-                          <i className="fas fa-link"></i>
-                          Direct link
-                        </a>
+                          <i className="fas fa-copy"></i>
+                          Copy link
+                        </button>
                       </div>
                       <button
-                        onClick={() =>
-                          navigate("/service-form", { state: { service } })
-                        }
+                        onClick={() => navigate(`/service-form/${service.id}`)}
                         className="w-full bg-[#4169E1] hover:bg-[#3658c9] text-white py-3 rounded-xl font-semibold transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
                       >
                         <i className="fas fa-arrow-right"></i>
