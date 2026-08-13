@@ -358,6 +358,12 @@ export default function OrdersManager() {
     const [uploadError, setUploadError] = useState(null);
     const [removing, setRemoving] = useState(null); // index being removed
 
+    // ─── Text deliverable state ──────────────────────────────────────────
+    const [showTextForm, setShowTextForm] = useState(false);
+    const [textName, setTextName] = useState("");
+    const [textContent, setTextContent] = useState("");
+    const [savingText, setSavingText] = useState(false);
+
     const deliverables = Array.isArray(order.deliverable_urls)
       ? order.deliverable_urls
       : [];
@@ -390,12 +396,31 @@ export default function OrdersManager() {
       }
     };
 
+    const handleAddText = async () => {
+      if (!textContent.trim()) return;
+      setSavingText(true);
+      try {
+        const item = {
+          type: "text",
+          name: textName.trim() || "Text",
+          content: textContent.trim(),
+        };
+        const updated = [...deliverables, item];
+        await saveDeliverables(updated);
+        setTextName("");
+        setTextContent("");
+        setShowTextForm(false);
+      } finally {
+        setSavingText(false);
+      }
+    };
+
     const handleRemove = async (index) => {
       setRemoving(index);
       try {
         const item = deliverables[index];
         const url = typeof item === "string" ? item : item?.url;
-        // Delete from storage
+        // Delete from storage only if it's a file (has a URL)
         if (url && url.includes("/order-files/")) {
           const match = url.match(/\/order-files\/(.+)$/);
           if (match)
@@ -417,29 +442,82 @@ export default function OrdersManager() {
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Deliverable Files
+            Deliverables
           </h4>
-          <label
-            className={`flex items-center gap-1.5 text-xs font-medium text-[#4169E1] cursor-pointer hover:text-[#3658c9] transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(e) => handleUpload(e.target.files[0])}
-              disabled={uploading}
-            />
-            {uploading ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i> Uploading...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-plus"></i> Add File
-              </>
-            )}
-          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowTextForm((p) => !p)}
+              className="flex items-center gap-1.5 text-xs font-medium text-[#4169E1] hover:text-[#3658c9] transition-colors"
+            >
+              <i className="fas fa-align-left"></i> Add Text
+            </button>
+            <label
+              className={`flex items-center gap-1.5 text-xs font-medium text-[#4169E1] cursor-pointer hover:text-[#3658c9] transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => handleUpload(e.target.files[0])}
+                disabled={uploading}
+              />
+              {uploading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Uploading...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-plus"></i> Add File
+                </>
+              )}
+            </label>
+          </div>
         </div>
+
+        {showTextForm && (
+          <div className="mb-3 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
+            <input
+              type="text"
+              placeholder="Label (optional, e.g. Login Details)"
+              value={textName}
+              onChange={(e) => setTextName(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#4169E1]"
+            />
+            <textarea
+              placeholder="Text content..."
+              value={textContent}
+              onChange={(e) => setTextContent(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#4169E1] resize-y"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTextForm(false);
+                  setTextName("");
+                  setTextContent("");
+                }}
+                className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddText}
+                disabled={savingText || !textContent.trim()}
+                className="px-3 py-1.5 bg-[#4169E1] hover:bg-[#3658c9] disabled:opacity-50 text-white text-xs font-semibold rounded-lg"
+              >
+                {savingText ? (
+                  <i className="fas fa-spinner fa-spin"></i>
+                ) : (
+                  "Save Text"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {uploadError && (
           <p className="text-red-500 text-xs mb-2 flex items-center gap-1">
@@ -454,6 +532,50 @@ export default function OrdersManager() {
         ) : (
           <div className="space-y-2">
             {deliverables.map((item, i) => {
+              // ─── Text deliverable ──────────────────────────────────────
+              if (item && typeof item === "object" && item.type === "text") {
+                return (
+                  <div
+                    key={i}
+                    className="flex items-start justify-between bg-white border border-gray-200 rounded-xl px-3 py-2.5 gap-2"
+                  >
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
+                      <i className="fas fa-align-left text-[#4169E1] shrink-0 text-sm mt-0.5"></i>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm text-gray-700 font-medium block truncate">
+                          {item.name || "Text"}
+                        </span>
+                        <p className="text-xs text-gray-500 whitespace-pre-wrap line-clamp-3">
+                          {item.content}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() =>
+                          navigator.clipboard.writeText(item.content || "")
+                        }
+                        className="text-xs text-[#4169E1] hover:text-[#3658c9] font-medium px-2 py-1 rounded-lg hover:bg-[#4169E1]/10 transition-colors"
+                      >
+                        <i className="fas fa-copy mr-1"></i>Copy
+                      </button>
+                      <button
+                        onClick={() => handleRemove(i)}
+                        disabled={removing === i}
+                        className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40"
+                      >
+                        {removing === i ? (
+                          <i className="fas fa-spinner fa-spin"></i>
+                        ) : (
+                          <i className="fas fa-trash"></i>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              // ─── File deliverable ──────────────────────────────────────
               const url = typeof item === "string" ? item : item?.url;
               const name =
                 typeof item === "string"
@@ -461,14 +583,16 @@ export default function OrdersManager() {
                   : item?.name ||
                     decodeURIComponent(new URL(url).pathname.split("/").pop());
               const isImg = isDeliverableImage(url);
-              
+
               return (
                 <div
                   key={i}
                   className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-2.5 gap-2"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <i className={`${isImg ? 'fas fa-image' : 'fas fa-file'} text-[#4169E1] shrink-0 text-sm`}></i>
+                    <i
+                      className={`${isImg ? "fas fa-image" : "fas fa-file"} text-[#4169E1] shrink-0 text-sm`}
+                    ></i>
                     {isImg ? (
                       <img
                         src={url}
@@ -706,7 +830,9 @@ export default function OrdersManager() {
                                     alt="Payment receipt"
                                     loading="lazy"
                                     className="max-h-64 object-contain rounded-xl border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
-                                    onClick={() => openLightbox(order.receipt_url)}
+                                    onClick={() =>
+                                      openLightbox(order.receipt_url)
+                                    }
                                   />
                                   <button
                                     onClick={() =>
