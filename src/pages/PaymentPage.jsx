@@ -92,6 +92,7 @@ export default function PaymentPage() {
         serviceId: pendingOrder.serviceId,
         formData: pendingOrder.formData,
         receiptUrl,
+        totalPrice: pendingOrder.finalPriceValue ?? null,
       });
 
       if (error) throw new Error(error.message);
@@ -195,7 +196,9 @@ export default function PaymentPage() {
                 {service.name}
               </p>
             </div>
-            <p className="text-xl font-bold text-[#4169E1]">{service.price}</p>
+            <p className="text-xl font-bold text-[#4169E1]">
+              {pendingOrder.finalPriceDisplay || service.price}
+            </p>
           </div>
 
           {/* Order ID — shown only after creation */}

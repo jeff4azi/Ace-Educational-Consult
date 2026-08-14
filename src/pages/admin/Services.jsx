@@ -18,7 +18,7 @@ export default function ServicesManager() {
     fields: []
   });
   const [imagePreview, setImagePreview] = useState('');
-  const [newField, setNewField] = useState({ name: '', type: 'text', required: false });
+  const [newField, setNewField] = useState({ name: '', type: 'text', required: false, hasFee: false, extraPrice: '' });
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -64,7 +64,7 @@ export default function ServicesManager() {
         ...prev,
         fields: [...prev.fields, newField]
       }));
-      setNewField({ name: '', type: 'text', required: false });
+      setNewField({ name: '', type: 'text', required: false, hasFee: false, extraPrice: '' });
     }
   };
 
@@ -340,48 +340,93 @@ export default function ServicesManager() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Custom Fields</label>
                 <div className="space-y-3 mb-4">
                   {formData.fields.map((field, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl flex-wrap">
-                      <input
-                        type="text"
-                        placeholder="Field name"
-                        value={field.name}
-                        onChange={(e) => {
-                          const updatedFields = [...formData.fields];
-                          updatedFields[i] = { ...updatedFields[i], name: e.target.value };
-                          setFormData(prev => ({ ...prev, fields: updatedFields }));
-                        }}
-                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20"
-                      />
-                      <select
-                        value={field.type}
-                        onChange={(e) => {
-                          const updatedFields = [...formData.fields];
-                          updatedFields[i] = { ...updatedFields[i], type: e.target.value };
-                          setFormData(prev => ({ ...prev, fields: updatedFields }));
-                        }}
-                        className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20"
-                      >
-                        <option value="text">Text</option>
-                        <option value="email">Email</option>
-                        <option value="number">Number</option>
-                        <option value="file">File</option>
-                        <option value="image">Image</option>
-                        <option value="textarea">Textarea</option>
-                      </select>
-                      <label className="flex items-center gap-1 cursor-pointer">
+                    <div key={i} className="bg-gray-50 p-3 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <input
-                          type="checkbox"
-                          checked={field.required}
+                          type="text"
+                          placeholder="Field name"
+                          value={field.name}
                           onChange={(e) => {
                             const updatedFields = [...formData.fields];
-                            updatedFields[i] = { ...updatedFields[i], required: e.target.checked };
+                            updatedFields[i] = { ...updatedFields[i], name: e.target.value };
                             setFormData(prev => ({ ...prev, fields: updatedFields }));
                           }}
-                          className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20"
                         />
-                        <span className="text-sm text-gray-700">Required</span>
-                      </label>
-                      <button type="button" onClick={() => handleRemoveField(i)} className="text-red-500 hover:text-red-700 p-1"><i className="fas fa-times"></i></button>
+                        <select
+                          value={field.type}
+                          onChange={(e) => {
+                            const updatedFields = [...formData.fields];
+                            updatedFields[i] = { ...updatedFields[i], type: e.target.value };
+                            setFormData(prev => ({ ...prev, fields: updatedFields }));
+                          }}
+                          className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20"
+                        >
+                          <option value="text">Text</option>
+                          <option value="email">Email</option>
+                          <option value="number">Number</option>
+                          <option value="file">File</option>
+                          <option value="image">Image</option>
+                          <option value="textarea">Textarea</option>
+                        </select>
+                        <label className={`flex items-center gap-1 ${field.hasFee ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
+                          <input
+                            type="checkbox"
+                            checked={field.required}
+                            disabled={field.hasFee}
+                            onChange={(e) => {
+                              const updatedFields = [...formData.fields];
+                              updatedFields[i] = { ...updatedFields[i], required: e.target.checked };
+                              setFormData(prev => ({ ...prev, fields: updatedFields }));
+                            }}
+                            className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
+                          />
+                          <span className="text-sm text-gray-700">Required</span>
+                        </label>
+                        <button type="button" onClick={() => handleRemoveField(i)} className="text-red-500 hover:text-red-700 p-1"><i className="fas fa-times"></i></button>
+                      </div>
+
+                      <div className="flex items-center gap-2 pl-1 flex-wrap">
+                        <label className="flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!field.hasFee}
+                            onChange={(e) => {
+                              const updatedFields = [...formData.fields];
+                              updatedFields[i] = {
+                                ...updatedFields[i],
+                                hasFee: e.target.checked,
+                                // a field with a fee can't also be required — the customer
+                                // needs the option to skip it and pay the fee instead
+                                required: e.target.checked ? false : updatedFields[i].required,
+                              };
+                              setFormData(prev => ({ ...prev, fields: updatedFields }));
+                            }}
+                            className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
+                          />
+                          <span className="text-xs text-gray-600">Charge a fee if customer doesn't provide this</span>
+                        </label>
+                        {field.hasFee && (
+                          <span className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 whitespace-nowrap">Fee (₦):</span>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="e.g. 5000"
+                              value={field.extraPrice ?? ""}
+                              onChange={(e) => {
+                                const updatedFields = [...formData.fields];
+                                updatedFields[i] = {
+                                  ...updatedFields[i],
+                                  extraPrice: e.target.value === "" ? "" : Number(e.target.value),
+                                };
+                                setFormData(prev => ({ ...prev, fields: updatedFields }));
+                              }}
+                              className="w-32 px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] text-sm"
+                            />
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -406,10 +451,11 @@ export default function ServicesManager() {
                       <option value="image">Image</option>
                       <option value="textarea">Textarea</option>
                     </select>
-                    <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                    <label className={`flex items-center gap-1 whitespace-nowrap ${newField.hasFee ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
                       <input
                         type="checkbox"
                         checked={newField.required}
+                        disabled={newField.hasFee}
                         onChange={(e) => setNewField(prev => ({ ...prev, required: e.target.checked }))}
                         className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
                       />
@@ -417,6 +463,34 @@ export default function ServicesManager() {
                     </label>
                   </div>
                   <button type="button" onClick={handleAddField} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-medium transition-colors">Add</button>
+                </div>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!newField.hasFee}
+                      onChange={(e) => setNewField(prev => ({
+                        ...prev,
+                        hasFee: e.target.checked,
+                        required: e.target.checked ? false : prev.required,
+                      }))}
+                      className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
+                    />
+                    <span className="text-xs text-gray-600">Charge a fee if customer doesn't provide this</span>
+                  </label>
+                  {newField.hasFee && (
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 whitespace-nowrap">Fee (₦):</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 5000"
+                        value={newField.extraPrice}
+                        onChange={(e) => setNewField(prev => ({ ...prev, extraPrice: e.target.value === "" ? "" : Number(e.target.value) }))}
+                        className="w-32 px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] text-sm"
+                      />
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex gap-4">

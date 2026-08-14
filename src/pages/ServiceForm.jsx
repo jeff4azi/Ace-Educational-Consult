@@ -6,6 +6,14 @@ import { useAdmin } from "../contexts/AdminContext";
 
 const PENDING_ORDER_KEY = "ace_pending_order";
 
+function parsePrice(priceStr) {
+  const num = parseFloat(String(priceStr || "").replace(/[^0-9.]/g, ""));
+  return isNaN(num) ? 0 : num;
+}
+function formatNaira(value) {
+  return `₦${value.toLocaleString()}`;
+}
+
 export default function ServiceForm() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,6 +23,8 @@ export default function ServiceForm() {
   const [filePreviews, setFilePreviews] = useState({});
   const [uploading, setUploading] = useState({});
   const [uploadErrors, setUploadErrors] = useState({});
+  const [conditionalAnswers, setConditionalAnswers] = useState({});
+  // true = "Yes, I have it" (no fee) | false/undefined = "No" (fee applies)
   const [resolvedService, setResolvedService] = useState(
     location.state?.service || null,
   );
@@ -119,6 +129,8 @@ export default function ServiceForm() {
         fields: service.fields,
       },
       formData: form,
+      finalPriceValue: totalValue,
+      finalPriceDisplay: formatNaira(totalValue),
       savedAt: Date.now(),
     };
 
@@ -130,6 +142,16 @@ export default function ServiceForm() {
 
     navigate("/payment", { state: { pendingOrder } });
   };
+
+  const conditionalFields = (resolvedService?.fields || []).filter(
+    (f) => f.hasFee,
+  );
+  const extraFees = conditionalFields.reduce((sum, f) => {
+    const hasIt = conditionalAnswers[f.name] === true;
+    return hasIt ? sum : sum + (Number(f.extraPrice) || 0);
+  }, 0);
+  const baseValue = resolvedService ? parsePrice(resolvedService.price) : 0;
+  const totalValue = baseValue + extraFees;
 
   if (loading || resolving) {
     return (
@@ -149,7 +171,7 @@ export default function ServiceForm() {
 
   const service = resolvedService;
 
-  const renderField = (field, index) => {
+  const renderFieldControl = (field, index) => {
     const value = form[field.name] || "";
     const isUploading = uploading[field.name];
     const uploadError = uploadErrors[field.name];
@@ -303,6 +325,63 @@ export default function ServiceForm() {
     }
   };
 
+  // Any field type (text, email, file, image, etc.) can carry a fee via field.hasFee.
+  // When it does, the customer picks yes/no first; the underlying control (whatever
+  // type it is) only renders once they say "yes", and is force-required at that point.
+  const renderField = (field, index) => {
+    if (!field.hasFee) {
+      return renderFieldControl(field, index);
+    }
+
+    const hasIt = conditionalAnswers[field.name] === true;
+    const saidNo = conditionalAnswers[field.name] === false;
+
+    return (
+      <div key={index} className="space-y-3 border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+        <label className="block text-sm font-medium text-gray-700">
+          Do you already have your {field.name}?
+          {field.extraPrice ? (
+            <span className="text-xs text-gray-400 font-normal ml-1">
+              (+{formatNaira(Number(field.extraPrice))} if not)
+            </span>
+          ) : null}
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setConditionalAnswers((prev) => ({ ...prev, [field.name]: true }));
+            }}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+              hasIt
+                ? "bg-[#4169E1] text-white border-[#4169E1]"
+                : "bg-white text-gray-600 border-gray-200 hover:border-[#4169E1]/50"
+            }`}
+          >
+            Yes, I have it
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setConditionalAnswers((prev) => ({ ...prev, [field.name]: false }));
+              setForm((prev) => ({ ...prev, [field.name]: "" }));
+              setFilePreviews((prev) => ({ ...prev, [field.name]: null }));
+              setUploadErrors((prev) => ({ ...prev, [field.name]: null }));
+            }}
+            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+              saidNo
+                ? "bg-gray-800 text-white border-gray-800"
+                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}
+          >
+            No, I don't have it
+          </button>
+        </div>
+        {hasIt && renderFieldControl({ ...field, required: true }, index)}
+      </div>
+    );
+  };
+
   const anyUploading = Object.values(uploading).some(Boolean);
 
   return (
@@ -325,9 +404,17 @@ export default function ServiceForm() {
             Service:{" "}
             <span className="font-semibold text-[#4169E1]">{service.name}</span>
           </p>
-          <p className="text-2xl font-bold text-[#4169E1] mb-8">
-            {service.price}
-          </p>
+          <div className="mb-8">
+            <p className="text-2xl font-bold text-[#4169E1]">
+              {formatNaira(totalValue)}
+            </p>
+            {extraFees > 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                Base {formatNaira(baseValue)} + {formatNaira(extraFees)} for missing
+                details you don't currently have
+              </p>
+            )}
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             {service.fields?.map((field, index) => renderField(field, index))}
             <button
