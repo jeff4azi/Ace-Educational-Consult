@@ -118,7 +118,7 @@ export function AdminProvider({ children }) {
     const { data, error } = await supabase
       .from("service_categories")
       .select("*")
-      .order("name");
+      .order("display_order", { ascending: true });
     if (!error && data) {
       setServiceCategories(data);
     }
@@ -126,30 +126,46 @@ export function AdminProvider({ children }) {
 
   // Load services
   const loadServices = async () => {
-    const { data, error } = await supabase
-      .from("services")
-      .select("*, category: service_categories(name)");
-    if (!error && data) {
-      // Group services by category
-      const groupedServices = {};
-      data.forEach((service) => {
-        const categoryName = service.category?.name;
-        if (categoryName) {
-          if (!groupedServices[categoryName]) {
-            groupedServices[categoryName] = [];
-          }
-          groupedServices[categoryName].push({
-            id: service.id,
-            name: service.name,
-            price: service.price,
-            description: service.description,
-            image: service.image_url,
-            fields: service.fields || [],
-          });
+    // Fetch categories (already ordered) and services in parallel, then seed the
+    // grouped object using the category order first. This way the object's key
+    // order always matches the admin's chosen order, regardless of what order
+    // Postgres happens to return the service rows in — that mismatch was the
+    // cause of categories re-shuffling on every edit.
+    const [categoriesRes, servicesRes] = await Promise.all([
+      supabase
+        .from("service_categories")
+        .select("*")
+        .order("display_order", { ascending: true }),
+      supabase.from("services").select("*, category: service_categories(name)"),
+    ]);
+
+    if (categoriesRes.error || servicesRes.error) return;
+
+    const orderedCategories = categoriesRes.data || [];
+    const data = servicesRes.data || [];
+
+    const groupedServices = {};
+    orderedCategories.forEach((cat) => {
+      groupedServices[cat.name] = [];
+    });
+
+    data.forEach((service) => {
+      const categoryName = service.category?.name;
+      if (categoryName) {
+        if (!groupedServices[categoryName]) {
+          groupedServices[categoryName] = [];
         }
-      });
-      setServices(groupedServices);
-    }
+        groupedServices[categoryName].push({
+          id: service.id,
+          name: service.name,
+          price: service.price,
+          description: service.description,
+          image: service.image_url,
+          fields: service.fields || [],
+        });
+      }
+    });
+    setServices(groupedServices);
   };
 
   // Load testimonials
@@ -257,14 +273,61 @@ export function AdminProvider({ children }) {
 
   // Service categories
   const addServiceCategory = async (categoryName) => {
+    // New categories go to the end of the admin's current order.
+    const nextOrder = serviceCategories.length
+      ? Math.max(...serviceCategories.map((c) => c.display_order ?? 0)) + 1
+      : 0;
+
     const { data, error } = await supabase
       .from("service_categories")
-      .insert({ name: categoryName })
+      .insert({ name: categoryName, display_order: nextOrder })
       .select()
       .single();
     if (!error && data) {
       setServiceCategories((prev) => [...prev, data]);
       setServices((prev) => ({ ...prev, [categoryName]: [] }));
+    }
+  };
+
+  // Persist a new category order. Pass the category objects (or names) in the
+  // exact order they should appear — the first one becomes the first category
+  // customers see on the landing page.
+  const updateCategoryOrder = async (orderedCategoryNames) => {
+    const nameToCategory = new Map(
+      serviceCategories.map((cat) => [cat.name, cat]),
+    );
+
+    const updates = orderedCategoryNames
+      .map((name, index) => {
+        const cat = nameToCategory.get(name);
+        return cat ? { ...cat, display_order: index } : null;
+      })
+      .filter(Boolean);
+
+    // Optimistically update local state so the UI reorders immediately.
+    setServiceCategories(updates);
+    setServices((prev) => {
+      const reordered = {};
+      orderedCategoryNames.forEach((name) => {
+        reordered[name] = prev[name] || [];
+      });
+      return reordered;
+    });
+
+    const results = await Promise.all(
+      updates.map((cat) =>
+        supabase
+          .from("service_categories")
+          .update({ display_order: cat.display_order })
+          .eq("id", cat.id),
+      ),
+    );
+
+    const failed = results.some((r) => r.error);
+    if (failed) {
+      console.error("Error saving category order, reloading from server");
+      await loadServiceCategories();
+      await loadServices();
     }
   };
 
@@ -556,6 +619,7 @@ export function AdminProvider({ children }) {
         logout,
         updateSiteSettings,
         addServiceCategory,
+        updateCategoryOrder,
         addService,
         updateService,
         deleteService,

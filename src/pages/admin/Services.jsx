@@ -4,7 +4,7 @@ import { uploadImage } from '../../lib/imageUpload';
 import ConfirmModal from '../../components/ConfirmModal';
 
 export default function ServicesManager() {
-  const { services, addService, updateService, deleteService, addServiceCategory, loading } = useAdmin();
+  const { services, addService, updateService, deleteService, addServiceCategory, updateCategoryOrder, loading } = useAdmin();
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -32,6 +32,14 @@ export default function ServicesManager() {
       setNewCategoryName('');
       setShowNewCategory(false);
     }
+  };
+
+  const moveCategory = (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+    const reordered = [...categories];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    updateCategoryOrder(reordered);
   };
 
   const handleImageChange = async (e) => {
@@ -146,15 +154,41 @@ export default function ServicesManager() {
         </button>
       </div>
 
+      <div className="mb-1 flex items-center gap-1 text-xs text-gray-400">
+        <i className="fas fa-arrows-alt-h"></i>
+        <span>Use the arrows to reorder — the first category is what customers see first on the landing page.</span>
+      </div>
       <div className="mb-6 flex gap-2 flex-wrap items-center">
-        {categories.map(cat => (
-          <button
+        {categories.map((cat, i) => (
+          <div
             key={cat}
-            onClick={() => setCurrentCategory(cat)}
-            className={`px-4 py-2 rounded-full font-medium transition-all ${currentCategory === cat ? 'bg-[#4169E1] text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+            className={`flex items-center rounded-full transition-all ${currentCategory === cat ? 'bg-[#4169E1]' : 'bg-white'}`}
           >
-            {cat}
-          </button>
+            <button
+              type="button"
+              onClick={() => moveCategory(i, -1)}
+              disabled={i === 0}
+              title="Move left"
+              className={`pl-3 pr-1 py-2 rounded-l-full ${currentCategory === cat ? 'text-white' : 'text-gray-400'} ${i === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:opacity-70'}`}
+            >
+              <i className="fas fa-chevron-left text-xs"></i>
+            </button>
+            <button
+              onClick={() => setCurrentCategory(cat)}
+              className={`py-2 font-medium ${currentCategory === cat ? 'text-white' : 'text-gray-700 hover:bg-gray-100 rounded-full'}`}
+            >
+              {cat}
+            </button>
+            <button
+              type="button"
+              onClick={() => moveCategory(i, 1)}
+              disabled={i === categories.length - 1}
+              title="Move right"
+              className={`pr-3 pl-1 py-2 rounded-r-full ${currentCategory === cat ? 'text-white' : 'text-gray-400'} ${i === categories.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:opacity-70'}`}
+            >
+              <i className="fas fa-chevron-right text-xs"></i>
+            </button>
+          </div>
         ))}
         {!showNewCategory ? (
           <button
