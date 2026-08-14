@@ -147,8 +147,8 @@ export default function ServiceForm() {
     (f) => f.hasFee,
   );
   const extraFees = conditionalFields.reduce((sum, f) => {
-    const hasIt = conditionalAnswers[f.name] === true;
-    return hasIt ? sum : sum + (Number(f.extraPrice) || 0);
+    const saidNo = conditionalAnswers[f.name] === false;
+    return saidNo ? sum + (Number(f.extraPrice) || 0) : sum;
   }, 0);
   const baseValue = resolvedService ? parsePrice(resolvedService.price) : 0;
   const totalValue = baseValue + extraFees;
