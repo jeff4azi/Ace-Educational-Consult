@@ -1,35 +1,58 @@
-import { useState } from 'react';
-import { useAdmin } from '../../contexts/AdminContext';
-import { uploadImage } from '../../lib/imageUpload';
-import ConfirmModal from '../../components/ConfirmModal';
+import { useState } from "react";
+import { useAdmin } from "../../contexts/AdminContext";
+import { uploadImage } from "../../lib/imageUpload";
+import ConfirmModal from "../../components/ConfirmModal";
 
 export default function ServicesManager() {
-  const { services, addService, updateService, deleteService, addServiceCategory, updateCategoryOrder, loading } = useAdmin();
+  const {
+    services,
+    addService,
+    updateService,
+    deleteService,
+    addServiceCategory,
+    updateCategoryOrder,
+    deleteServiceCategory,
+    loading,
+  } = useAdmin();
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
-  const [currentCategory, setCurrentCategory] = useState(Object.keys(services)[0] || 'Examination Services');
+  const [isCategoryConfirmOpen, setIsCategoryConfirmOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [categoryDeleteError, setCategoryDeleteError] = useState("");
+  const [currentCategory, setCurrentCategory] = useState(
+    Object.keys(services)[0] || "Examination Services",
+  );
   const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    description: '',
-    image: '',
-    fields: []
+    name: "",
+    price: "",
+    description: "",
+    image: "",
+    fields: [],
   });
-  const [imagePreview, setImagePreview] = useState('');
-  const [newField, setNewField] = useState({ name: '', type: 'text', required: false, hasFee: false, extraPrice: '' });
+  const [imagePreview, setImagePreview] = useState("");
+  const [newField, setNewField] = useState({
+    name: "",
+    type: "text",
+    required: false,
+    hasFee: false,
+    extraPrice: "",
+  });
   const [showNewCategory, setShowNewCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
   const categories = Object.keys(services);
 
   const handleAddCategory = async () => {
-    if (newCategoryName.trim() && !categories.includes(newCategoryName.trim())) {
+    if (
+      newCategoryName.trim() &&
+      !categories.includes(newCategoryName.trim())
+    ) {
       await addServiceCategory(newCategoryName.trim());
       setCurrentCategory(newCategoryName.trim());
-      setNewCategoryName('');
+      setNewCategoryName("");
       setShowNewCategory(false);
     }
   };
@@ -38,7 +61,10 @@ export default function ServicesManager() {
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= categories.length) return;
     const reordered = [...categories];
-    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    [reordered[index], reordered[targetIndex]] = [
+      reordered[targetIndex],
+      reordered[index],
+    ];
     updateCategoryOrder(reordered);
   };
 
@@ -51,15 +77,15 @@ export default function ServicesManager() {
         setImagePreview(event.target.result);
       };
       reader.readAsDataURL(file);
-      
+
       // Upload the image
       setIsUploading(true);
       try {
         const publicUrl = await uploadImage(file);
-        setFormData(prev => ({ ...prev, image: publicUrl }));
+        setFormData((prev) => ({ ...prev, image: publicUrl }));
       } catch (error) {
-        console.error('Error uploading image:', error);
-        alert('Error uploading image. Please try again.');
+        console.error("Error uploading image:", error);
+        alert("Error uploading image. Please try again.");
       } finally {
         setIsUploading(false);
       }
@@ -68,25 +94,31 @@ export default function ServicesManager() {
 
   const handleAddField = () => {
     if (newField.name) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        fields: [...prev.fields, newField]
+        fields: [...prev.fields, newField],
       }));
-      setNewField({ name: '', type: 'text', required: false, hasFee: false, extraPrice: '' });
+      setNewField({
+        name: "",
+        type: "text",
+        required: false,
+        hasFee: false,
+        extraPrice: "",
+      });
     }
   };
 
   const handleRemoveField = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      fields: prev.fields.filter((_, i) => i !== index)
+      fields: prev.fields.filter((_, i) => i !== index),
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isUploading) {
-      alert('Please wait for the image to finish uploading.');
+      alert("Please wait for the image to finish uploading.");
       return;
     }
     if (editingService) {
@@ -96,8 +128,14 @@ export default function ServicesManager() {
     }
     setShowModal(false);
     setEditingService(null);
-    setFormData({ name: '', price: '', description: '', image: '', fields: [] });
-    setImagePreview('');
+    setFormData({
+      name: "",
+      price: "",
+      description: "",
+      image: "",
+      fields: [],
+    });
+    setImagePreview("");
   };
 
   const handleEdit = (service) => {
@@ -131,6 +169,38 @@ export default function ServicesManager() {
     setServiceToDelete(null);
   };
 
+  const handleDeleteCategory = (cat) => {
+    if ((services[cat] || []).length > 0) {
+      setCategoryDeleteError(
+        `"${cat}" still has ${services[cat].length} service(s) under it. Move or delete them first.`,
+      );
+      return;
+    }
+    setCategoryDeleteError("");
+    setCategoryToDelete(cat);
+    setIsCategoryConfirmOpen(true);
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (categoryToDelete) {
+      const { error } = await deleteServiceCategory(categoryToDelete);
+      if (error) {
+        setCategoryDeleteError(error);
+      } else if (currentCategory === categoryToDelete) {
+        setCurrentCategory(
+          categories.find((c) => c !== categoryToDelete) || "",
+        );
+      }
+      setIsCategoryConfirmOpen(false);
+      setCategoryToDelete(null);
+    }
+  };
+
+  const handleCloseCategoryModal = () => {
+    setIsCategoryConfirmOpen(false);
+    setCategoryToDelete(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -156,26 +226,29 @@ export default function ServicesManager() {
 
       <div className="mb-1 flex items-center gap-1 text-xs text-gray-400">
         <i className="fas fa-arrows-alt-h"></i>
-        <span>Use the arrows to reorder — the first category is what customers see first on the landing page.</span>
+        <span>
+          Use the arrows to reorder — the first category is what customers see
+          first on the landing page.
+        </span>
       </div>
       <div className="mb-6 flex gap-2 flex-wrap items-center">
         {categories.map((cat, i) => (
           <div
             key={cat}
-            className={`flex items-center rounded-full transition-all ${currentCategory === cat ? 'bg-[#4169E1]' : 'bg-white'}`}
+            className={`flex items-center rounded-full transition-all ${currentCategory === cat ? "bg-[#4169E1]" : "bg-white"}`}
           >
             <button
               type="button"
               onClick={() => moveCategory(i, -1)}
               disabled={i === 0}
               title="Move left"
-              className={`pl-3 pr-1 py-2 rounded-l-full ${currentCategory === cat ? 'text-white' : 'text-gray-400'} ${i === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:opacity-70'}`}
+              className={`pl-3 pr-1 py-2 rounded-l-full ${currentCategory === cat ? "text-white" : "text-gray-400"} ${i === 0 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"}`}
             >
               <i className="fas fa-chevron-left text-xs"></i>
             </button>
             <button
               onClick={() => setCurrentCategory(cat)}
-              className={`py-2 font-medium ${currentCategory === cat ? 'text-white' : 'text-gray-700 hover:bg-gray-100 rounded-full'}`}
+              className={`py-2 font-medium ${currentCategory === cat ? "text-white" : "text-gray-700 hover:bg-gray-100 rounded-full"}`}
             >
               {cat}
             </button>
@@ -184,9 +257,21 @@ export default function ServicesManager() {
               onClick={() => moveCategory(i, 1)}
               disabled={i === categories.length - 1}
               title="Move right"
-              className={`pr-3 pl-1 py-2 rounded-r-full ${currentCategory === cat ? 'text-white' : 'text-gray-400'} ${i === categories.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:opacity-70'}`}
+              className={`pl-1 pr-1 py-2 ${currentCategory === cat ? "text-white" : "text-gray-400"} ${i === categories.length - 1 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"}`}
             >
               <i className="fas fa-chevron-right text-xs"></i>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDeleteCategory(cat)}
+              title={
+                (services[cat] || []).length > 0
+                  ? "Category still has services — move or delete them first"
+                  : "Delete category"
+              }
+              className={`pl-1 pr-3 py-2 rounded-r-full ${currentCategory === cat ? "text-white" : "text-gray-400"} ${(services[cat] || []).length > 0 ? "opacity-40 cursor-not-allowed" : "hover:text-red-500"}`}
+            >
+              <i className="fas fa-trash text-xs"></i>
             </button>
           </div>
         ))}
@@ -214,7 +299,10 @@ export default function ServicesManager() {
               Save
             </button>
             <button
-              onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
+              onClick={() => {
+                setShowNewCategory(false);
+                setNewCategoryName("");
+              }}
               className="px-4 py-2 rounded-full font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
             >
               Cancel
@@ -222,23 +310,49 @@ export default function ServicesManager() {
           </div>
         )}
       </div>
+      {categoryDeleteError && (
+        <p className="mb-4 text-sm text-red-500">
+          <i className="fas fa-exclamation-circle mr-1"></i>
+          {categoryDeleteError}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services[currentCategory]?.map(service => (
-          <div key={service.id} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        {services[currentCategory]?.map((service) => (
+          <div
+            key={service.id}
+            className="bg-white rounded-2xl shadow-lg overflow-hidden"
+          >
             {service.image && (
-              <img src={service.image} alt={service.name} className="w-full h-40 object-cover" />
+              <img
+                src={service.image}
+                alt={service.name}
+                className="w-full h-40 object-cover"
+              />
             )}
             <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">{service.name}</h3>
-              <p className="text-2xl font-bold text-[#4169E1] mb-2">{service.price}</p>
-              <p className="text-gray-600 text-sm mb-4">{service.description}</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                {service.name}
+              </h3>
+              <p className="text-2xl font-bold text-[#4169E1] mb-2">
+                {service.price}
+              </p>
+              <p className="text-gray-600 text-sm mb-4">
+                {service.description}
+              </p>
               {service.fields.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 mb-1">Custom Fields:</p>
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    Custom Fields:
+                  </p>
                   <div className="flex flex-wrap gap-1">
                     {service.fields.map((field, i) => (
-                      <span key={i} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">{field.name}</span>
+                      <span
+                        key={i}
+                        className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
+                      >
+                        {field.name}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -267,19 +381,43 @@ export default function ServicesManager() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">{editingService ? 'Edit Service' : 'Add New Service'}</h3>
-              <button onClick={() => { setShowModal(false); setEditingService(null); setFormData({ name: '', price: '', description: '', image: '', fields: [] }); setImagePreview(''); }} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+              <h3 className="text-xl font-bold text-gray-900">
+                {editingService ? "Edit Service" : "Add New Service"}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingService(null);
+                  setFormData({
+                    name: "",
+                    price: "",
+                    description: "",
+                    image: "",
+                    fields: [],
+                  });
+                  setImagePreview("");
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                &times;
+              </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
                 <div className="space-y-2">
                   <select
                     value={currentCategory}
                     onChange={(e) => setCurrentCategory(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                   >
-                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
                   </select>
                   {!showNewCategory ? (
                     <button
@@ -307,7 +445,10 @@ export default function ServicesManager() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
+                        onClick={() => {
+                          setShowNewCategory(false);
+                          setNewCategoryName("");
+                        }}
                         className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
                       >
                         Cancel
@@ -317,37 +458,54 @@ export default function ServicesManager() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Service Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Service Name
+                </label>
                 <input
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price
+                </label>
                 <input
                   type="text"
                   required
                   value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, price: e.target.value }))
+                  }
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
                 <textarea
                   required
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                   rows={3}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                 ></textarea>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Service Image</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Service Image
+                </label>
                 <input
                   type="file"
                   accept="image/*"
@@ -357,24 +515,30 @@ export default function ServicesManager() {
                 />
                 {isUploading && (
                   <p className="text-sm text-[#4169E1] mt-2">
-                    <i className="fas fa-spinner fa-spin mr-2"></i> Uploading image...
+                    <i className="fas fa-spinner fa-spin mr-2"></i> Uploading
+                    image...
                   </p>
                 )}
                 {imagePreview && (
                   <div className="mt-4">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
-                      className="w-full max-h-64 object-contain rounded-xl border border-gray-200" 
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full max-h-64 object-contain rounded-xl border border-gray-200"
                     />
                   </div>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Custom Fields</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Fields
+                </label>
                 <div className="space-y-3 mb-4">
                   {formData.fields.map((field, i) => (
-                    <div key={i} className="bg-gray-50 p-3 rounded-xl space-y-2">
+                    <div
+                      key={i}
+                      className="bg-gray-50 p-3 rounded-xl space-y-2"
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
                         <input
                           type="text"
@@ -382,8 +546,14 @@ export default function ServicesManager() {
                           value={field.name}
                           onChange={(e) => {
                             const updatedFields = [...formData.fields];
-                            updatedFields[i] = { ...updatedFields[i], name: e.target.value };
-                            setFormData(prev => ({ ...prev, fields: updatedFields }));
+                            updatedFields[i] = {
+                              ...updatedFields[i],
+                              name: e.target.value,
+                            };
+                            setFormData((prev) => ({
+                              ...prev,
+                              fields: updatedFields,
+                            }));
                           }}
                           className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20"
                         />
@@ -391,8 +561,14 @@ export default function ServicesManager() {
                           value={field.type}
                           onChange={(e) => {
                             const updatedFields = [...formData.fields];
-                            updatedFields[i] = { ...updatedFields[i], type: e.target.value };
-                            setFormData(prev => ({ ...prev, fields: updatedFields }));
+                            updatedFields[i] = {
+                              ...updatedFields[i],
+                              type: e.target.value,
+                            };
+                            setFormData((prev) => ({
+                              ...prev,
+                              fields: updatedFields,
+                            }));
                           }}
                           className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20"
                         >
@@ -403,21 +579,37 @@ export default function ServicesManager() {
                           <option value="image">Image</option>
                           <option value="textarea">Textarea</option>
                         </select>
-                        <label className={`flex items-center gap-1 ${field.hasFee ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
+                        <label
+                          className={`flex items-center gap-1 ${field.hasFee ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+                        >
                           <input
                             type="checkbox"
                             checked={field.required}
                             disabled={field.hasFee}
                             onChange={(e) => {
                               const updatedFields = [...formData.fields];
-                              updatedFields[i] = { ...updatedFields[i], required: e.target.checked };
-                              setFormData(prev => ({ ...prev, fields: updatedFields }));
+                              updatedFields[i] = {
+                                ...updatedFields[i],
+                                required: e.target.checked,
+                              };
+                              setFormData((prev) => ({
+                                ...prev,
+                                fields: updatedFields,
+                              }));
                             }}
                             className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
                           />
-                          <span className="text-sm text-gray-700">Required</span>
+                          <span className="text-sm text-gray-700">
+                            Required
+                          </span>
                         </label>
-                        <button type="button" onClick={() => handleRemoveField(i)} className="text-red-500 hover:text-red-700 p-1"><i className="fas fa-times"></i></button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveField(i)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
                       </div>
 
                       <div className="flex items-center gap-2 pl-1 flex-wrap">
@@ -432,17 +624,26 @@ export default function ServicesManager() {
                                 hasFee: e.target.checked,
                                 // a field with a fee can't also be required — the customer
                                 // needs the option to skip it and pay the fee instead
-                                required: e.target.checked ? false : updatedFields[i].required,
+                                required: e.target.checked
+                                  ? false
+                                  : updatedFields[i].required,
                               };
-                              setFormData(prev => ({ ...prev, fields: updatedFields }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                fields: updatedFields,
+                              }));
                             }}
                             className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
                           />
-                          <span className="text-xs text-gray-600">Charge a fee if customer doesn't provide this</span>
+                          <span className="text-xs text-gray-600">
+                            Charge a fee if customer doesn't provide this
+                          </span>
                         </label>
                         {field.hasFee && (
                           <span className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500 whitespace-nowrap">Fee (₦):</span>
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                              Fee (₦):
+                            </span>
                             <input
                               type="number"
                               min="0"
@@ -452,9 +653,15 @@ export default function ServicesManager() {
                                 const updatedFields = [...formData.fields];
                                 updatedFields[i] = {
                                   ...updatedFields[i],
-                                  extraPrice: e.target.value === "" ? "" : Number(e.target.value),
+                                  extraPrice:
+                                    e.target.value === ""
+                                      ? ""
+                                      : Number(e.target.value),
                                 };
-                                setFormData(prev => ({ ...prev, fields: updatedFields }));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  fields: updatedFields,
+                                }));
                               }}
                               className="w-32 px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] text-sm"
                             />
@@ -469,13 +676,20 @@ export default function ServicesManager() {
                     type="text"
                     placeholder="Field name"
                     value={newField.name}
-                    onChange={(e) => setNewField(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setNewField((prev) => ({ ...prev, name: e.target.value }))
+                    }
                     className="px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                   />
                   <div className="flex gap-2 items-center">
                     <select
                       value={newField.type}
-                      onChange={(e) => setNewField(prev => ({ ...prev, type: e.target.value }))}
+                      onChange={(e) =>
+                        setNewField((prev) => ({
+                          ...prev,
+                          type: e.target.value,
+                        }))
+                      }
                       className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20"
                     >
                       <option value="text">Text</option>
@@ -485,42 +699,69 @@ export default function ServicesManager() {
                       <option value="image">Image</option>
                       <option value="textarea">Textarea</option>
                     </select>
-                    <label className={`flex items-center gap-1 whitespace-nowrap ${newField.hasFee ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
+                    <label
+                      className={`flex items-center gap-1 whitespace-nowrap ${newField.hasFee ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+                    >
                       <input
                         type="checkbox"
                         checked={newField.required}
                         disabled={newField.hasFee}
-                        onChange={(e) => setNewField(prev => ({ ...prev, required: e.target.checked }))}
+                        onChange={(e) =>
+                          setNewField((prev) => ({
+                            ...prev,
+                            required: e.target.checked,
+                          }))
+                        }
                         className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
                       />
                       <span className="text-sm text-gray-700">Required</span>
                     </label>
                   </div>
-                  <button type="button" onClick={handleAddField} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-medium transition-colors">Add</button>
+                  <button
+                    type="button"
+                    onClick={handleAddField}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-medium transition-colors"
+                  >
+                    Add
+                  </button>
                 </div>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <label className="flex items-center gap-1 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={!!newField.hasFee}
-                      onChange={(e) => setNewField(prev => ({
-                        ...prev,
-                        hasFee: e.target.checked,
-                        required: e.target.checked ? false : prev.required,
-                      }))}
+                      onChange={(e) =>
+                        setNewField((prev) => ({
+                          ...prev,
+                          hasFee: e.target.checked,
+                          required: e.target.checked ? false : prev.required,
+                        }))
+                      }
                       className="w-4 h-4 text-[#4169E1] border-gray-300 rounded focus:ring-[#4169E1]"
                     />
-                    <span className="text-xs text-gray-600">Charge a fee if customer doesn't provide this</span>
+                    <span className="text-xs text-gray-600">
+                      Charge a fee if customer doesn't provide this
+                    </span>
                   </label>
                   {newField.hasFee && (
                     <span className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 whitespace-nowrap">Fee (₦):</span>
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                        Fee (₦):
+                      </span>
                       <input
                         type="number"
                         min="0"
                         placeholder="e.g. 5000"
                         value={newField.extraPrice}
-                        onChange={(e) => setNewField(prev => ({ ...prev, extraPrice: e.target.value === "" ? "" : Number(e.target.value) }))}
+                        onChange={(e) =>
+                          setNewField((prev) => ({
+                            ...prev,
+                            extraPrice:
+                              e.target.value === ""
+                                ? ""
+                                : Number(e.target.value),
+                          }))
+                        }
                         className="w-32 px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-[#4169E1] text-sm"
                       />
                     </span>
@@ -530,7 +771,18 @@ export default function ServicesManager() {
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => { setShowModal(false); setEditingService(null); setFormData({ name: '', price: '', description: '', image: '', fields: [] }); setImagePreview(''); }}
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditingService(null);
+                    setFormData({
+                      name: "",
+                      price: "",
+                      description: "",
+                      image: "",
+                      fields: [],
+                    });
+                    setImagePreview("");
+                  }}
                   className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
                 >
                   Cancel
@@ -540,7 +792,7 @@ export default function ServicesManager() {
                   disabled={isUploading}
                   className="flex-1 bg-[#4169E1] hover:bg-[#3658c9] text-white px-6 py-3 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                 >
-                  {editingService ? 'Update' : 'Add'} Service
+                  {editingService ? "Update" : "Add"} Service
                 </button>
               </div>
             </form>
@@ -554,6 +806,14 @@ export default function ServicesManager() {
         onConfirm={handleConfirmDelete}
         title="Delete Service"
         message="Are you sure you want to delete this service?"
+      />
+
+      <ConfirmModal
+        isOpen={isCategoryConfirmOpen}
+        onClose={handleCloseCategoryModal}
+        onConfirm={handleConfirmDeleteCategory}
+        title="Delete Category"
+        message={`Are you sure you want to delete "${categoryToDelete}"? This can't be undone.`}
       />
     </div>
   );

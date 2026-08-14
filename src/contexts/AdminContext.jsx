@@ -331,6 +331,36 @@ export function AdminProvider({ children }) {
     }
   };
 
+  const deleteServiceCategory = async (categoryName) => {
+    const category = serviceCategories.find((cat) => cat.name === categoryName);
+    if (!category) return { error: "Category not found" };
+
+    if ((services[categoryName] || []).length > 0) {
+      return { error: "Category still has services under it" };
+    }
+
+    const { error } = await supabase
+      .from("service_categories")
+      .delete()
+      .eq("id", category.id);
+
+    if (error) {
+      console.error("Error deleting category:", error);
+      return { error: error.message };
+    }
+
+    setServiceCategories((prev) =>
+      prev.filter((cat) => cat.name !== categoryName),
+    );
+    setServices((prev) => {
+      const updated = { ...prev };
+      delete updated[categoryName];
+      return updated;
+    });
+
+    return { error: null };
+  };
+
   // Services
   const addService = async (categoryName, service) => {
     // Get category id
@@ -620,6 +650,7 @@ export function AdminProvider({ children }) {
         updateSiteSettings,
         addServiceCategory,
         updateCategoryOrder,
+        deleteServiceCategory,
         addService,
         updateService,
         deleteService,
