@@ -40,6 +40,12 @@ export default function HomePage() {
   });
   const [successMsg, setSuccessMsg] = useState("");
   const [shareToast, setShareToast] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const serviceCategories = Object.keys(services);
+  const filteredServiceEntries = Object.entries(services).filter(
+    ([category]) => activeCategory === "All" || category === activeCategory,
+  );
 
   useEffect(() => {
     const defaultTitle =
@@ -62,15 +68,35 @@ export default function HomePage() {
       el.setAttribute("content", content);
     };
 
-    setMeta('meta[name="description"]', "name", "description", defaultDescription);
+    setMeta(
+      'meta[name="description"]',
+      "name",
+      "description",
+      defaultDescription,
+    );
     setMeta('meta[property="og:type"]', "property", "og:type", "website");
     setMeta('meta[property="og:url"]', "property", "og:url", url);
     setMeta('meta[property="og:title"]', "property", "og:title", defaultTitle);
-    setMeta('meta[property="og:description"]', "property", "og:description", defaultDescription);
+    setMeta(
+      'meta[property="og:description"]',
+      "property",
+      "og:description",
+      defaultDescription,
+    );
     setMeta('meta[property="og:image"]', "property", "og:image", image);
     setMeta('meta[name="twitter:url"]', "name", "twitter:url", url);
-    setMeta('meta[name="twitter:title"]', "name", "twitter:title", defaultTitle);
-    setMeta('meta[name="twitter:description"]', "name", "twitter:description", defaultDescription);
+    setMeta(
+      'meta[name="twitter:title"]',
+      "name",
+      "twitter:title",
+      defaultTitle,
+    );
+    setMeta(
+      'meta[name="twitter:description"]',
+      "name",
+      "twitter:description",
+      defaultDescription,
+    );
     setMeta('meta[name="twitter:image"]', "name", "twitter:image", image);
   }, []);
 
@@ -543,18 +569,49 @@ export default function HomePage() {
               services
             </p>
           </div>
-          {Object.entries(services).map(([category, items], catIdx) => (
-            <div key={catIdx} className="mb-16">
-              <h3 className="text-2xl font-bold text-gray-900 mb-8 border-l-4 border-[#4169E1] pl-4">
+
+          {/* Category filter pills */}
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
+            <button
+              onClick={() => setActiveCategory("All")}
+              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 border ${
+                activeCategory === "All"
+                  ? "bg-[#4169E1] border-[#4169E1] text-white shadow-lg scale-105"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-[#4169E1] hover:text-[#4169E1]"
+              }`}
+            >
+              All Services
+            </button>
+            {serviceCategories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 border ${
+                  activeCategory === category
+                    ? "bg-[#4169E1] border-[#4169E1] text-white shadow-lg scale-105"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-[#4169E1] hover:text-[#4169E1]"
+                }`}
+              >
                 {category}
-              </h3>
+              </button>
+            ))}
+          </div>
+
+          {filteredServiceEntries.map(([category, items], catIdx) => (
+            <div key={catIdx} className="mb-16">
+              {activeCategory === "All" && (
+                <h3 className="text-2xl font-bold text-gray-900 mb-8 border-l-4 border-[#4169E1] pl-4">
+                  {category}
+                </h3>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {items.map((service, idx) => (
                   <div
                     key={idx}
                     className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group flex flex-col"
                   >
-                    <div className="relative h-48 overflow-hidden cursor-pointer"
+                    <div
+                      className="relative h-48 overflow-hidden cursor-pointer"
                       onClick={() => navigate(`/service-form/${service.id}`)}
                     >
                       <img
