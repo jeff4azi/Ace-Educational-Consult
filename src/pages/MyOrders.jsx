@@ -2,6 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
+import {
+  getStoredWaNumber,
+  saveWaNumber,
+  formatDisplayNumber,
+  toWaNumber,
+} from "../components/WhatsAppModal";
 
 const LS_KEY = "ace_order_ids";
 const PENDING_ORDER_KEY = "ace_pending_order";
@@ -341,6 +347,36 @@ function OrderCard({ record, onRemove }) {
 export default function MyOrders() {
   const navigate = useNavigate();
 
+  // ── WhatsApp number management ────────────────────────────────────────────
+  const [waNumber, setWaNumber] = useState(() => getStoredWaNumber() || "");
+  const [waEditing, setWaEditing] = useState(false);
+  const [waEditValue, setWaEditValue] = useState("");
+  const [waEditError, setWaEditError] = useState("");
+
+  const handleWaEdit = () => {
+    setWaEditValue(formatDisplayNumber(waNumber));
+    setWaEditError("");
+    setWaEditing(true);
+  };
+
+  const handleWaSave = () => {
+    const digits = waEditValue.replace(/\D/g, "");
+    if (digits.length !== 11 && digits.length !== 10 && digits.length !== 13) {
+      setWaEditError("Enter a valid Nigerian number (e.g. 08012345678).");
+      return;
+    }
+    const formatted = toWaNumber(waEditValue);
+    saveWaNumber(waEditValue);
+    setWaNumber(formatted);
+    setWaEditing(false);
+    setWaEditError("");
+  };
+
+  const handleWaCancel = () => {
+    setWaEditing(false);
+    setWaEditError("");
+  };
+
   // Check for an unsubmitted (pending) order saved in localStorage
   const [pendingOrder, setPendingOrder] = useState(() => {
     try {
@@ -456,6 +492,85 @@ export default function MyOrders() {
           <p className="text-gray-500 mt-1">
             Track the status of your service requests
           </p>
+        </div>
+
+        {/* ── WhatsApp number card ───────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#25D366]/10 rounded-xl flex items-center justify-center shrink-0">
+                <i className="fab fa-whatsapp text-[#25D366] text-xl" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  WhatsApp Contact Number
+                </p>
+                {waNumber && !waEditing ? (
+                  <p className="text-sm text-gray-500 font-mono mt-0.5">
+                    {formatDisplayNumber(waNumber)}
+                  </p>
+                ) : !waEditing ? (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    No number saved yet
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            {!waEditing && (
+              <button
+                onClick={handleWaEdit}
+                className="text-sm text-[#4169E1] font-semibold hover:underline flex items-center gap-1.5 shrink-0"
+              >
+                <i className="fas fa-pen text-xs" />
+                {waNumber ? "Change" : "Add number"}
+              </button>
+            )}
+          </div>
+
+          {waEditing && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-[#25D366] focus-within:ring-2 focus-within:ring-[#25D366]/20 transition-all">
+                <span className="px-3 py-3 bg-gray-50 text-gray-500 text-sm border-r border-gray-200 shrink-0">
+                  🇳🇬 +234
+                </span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="08012345678"
+                  value={waEditValue}
+                  autoFocus
+                  onChange={(e) => {
+                    setWaEditValue(e.target.value);
+                    setWaEditError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleWaSave();
+                    if (e.key === "Escape") handleWaCancel();
+                  }}
+                  className="flex-1 px-3 py-3 text-sm focus:outline-none bg-white"
+                />
+              </div>
+              {waEditError && (
+                <p className="text-red-500 text-xs flex items-center gap-1">
+                  <i className="fas fa-circle-exclamation" /> {waEditError}
+                </p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleWaSave}
+                  className="flex-1 bg-[#25D366] hover:bg-[#1ebe57] text-white py-2.5 rounded-xl text-sm font-semibold transition-all"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleWaCancel}
+                  className="px-4 py-2.5 border border-gray-200 text-gray-500 hover:text-gray-700 rounded-xl text-sm font-medium transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Unfinished order banner ────────────────────────────────────── */}

@@ -7,6 +7,35 @@ import { useLocation } from "react-router-dom";
 
 const PAGE_SIZE = 20;
 
+/**
+ * Converts a wa.me number (2348012345678) back to a readable local format.
+ */
+function formatWaDisplay(waNumber) {
+  if (!waNumber) return "";
+  const digits = String(waNumber).replace(/\D/g, "");
+  if (digits.startsWith("234")) return "0" + digits.slice(3);
+  return waNumber;
+}
+
+/**
+ * Builds a wa.me URL with a pre-filled message for the admin to contact
+ * the customer about their order.
+ */
+function buildAdminWaLink(waNumber, orderId, serviceName) {
+  const digits = String(waNumber).replace(/\D/g, "");
+  // Ensure international format for wa.me
+  const intlNumber = digits.startsWith("234")
+    ? digits
+    : digits.startsWith("0")
+      ? "234" + digits.slice(1)
+      : digits;
+
+  const message = encodeURIComponent(
+    `Hello! This is Ace Educational Consult reaching out regarding your order.\n\nOrder ID: ${orderId}\nService: ${serviceName || "N/A"}\n\nWe'd like to provide an update or get more information about your order. Please reply to this message. Thank you!`,
+  );
+  return `https://wa.me/${intlNumber}?text=${message}`;
+}
+
 const STATUS_TABS = [
   {
     key: "pending_verification",
@@ -93,7 +122,7 @@ export default function OrdersManager() {
   const fetchOrderDetail = async (orderId) => {
     const { data, error } = await supabase
       .from("orders")
-      .select("user_data, receipt_url, deliverable_urls")
+      .select("user_data, receipt_url, deliverable_urls, whatsapp_number")
       .eq("id", orderId)
       .single();
     if (!error && data) {
@@ -105,6 +134,7 @@ export default function OrdersManager() {
                 user_data: data.user_data,
                 receipt_url: data.receipt_url,
                 deliverable_urls: data.deliverable_urls ?? [],
+                whatsapp_number: data.whatsapp_number ?? null,
               }
             : o,
         ),
@@ -816,6 +846,36 @@ export default function OrdersManager() {
                                   ([key, val]) => renderFieldValue(key, val),
                                 )}
                           </div>
+
+                          {/* WhatsApp Contact */}
+                          {order.whatsapp_number && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                                Customer Contact
+                              </h4>
+                              <div className="flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <i className="fab fa-whatsapp text-[#25D366] text-lg shrink-0" />
+                                  <span className="text-sm font-medium text-gray-800 font-mono">
+                                    {formatWaDisplay(order.whatsapp_number)}
+                                  </span>
+                                </div>
+                                <a
+                                  href={buildAdminWaLink(
+                                    order.whatsapp_number,
+                                    order.order_id,
+                                    service?.name || order.service?.name,
+                                  )}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1ebe57] text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors shrink-0"
+                                >
+                                  <i className="fab fa-whatsapp" />
+                                  Chat on WhatsApp
+                                </a>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Proof of Payment */}
                           {order.receipt_url && (

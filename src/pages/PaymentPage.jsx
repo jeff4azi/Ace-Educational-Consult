@@ -93,6 +93,7 @@ export default function PaymentPage() {
         formData: pendingOrder.formData,
         receiptUrl,
         totalPrice: pendingOrder.finalPriceValue ?? null,
+        whatsappNumber: pendingOrder.whatsappNumber ?? null,
       });
 
       if (error) throw new Error(error.message);

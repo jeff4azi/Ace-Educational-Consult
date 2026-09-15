@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
 import { uploadOrderFile } from "../lib/imageUpload";
 import { useAdmin } from "../contexts/AdminContext";
+import WhatsAppModal, { getStoredWaNumber } from "../components/WhatsAppModal";
 
 const PENDING_ORDER_KEY = "ace_pending_order";
 
@@ -31,6 +32,10 @@ export default function ServiceForm() {
   const [resolving, setResolving] = useState(
     !location.state?.service && !!serviceId,
   );
+  // WhatsApp modal — shown once before the user proceeds to payment
+  const [showWaModal, setShowWaModal] = useState(false);
+  // Holds the built pendingOrder while waiting for the modal to confirm
+  const [pendingOrderDraft, setPendingOrderDraft] = useState(null);
 
   useEffect(() => {
     if (!resolving || loading) return;
@@ -51,7 +56,8 @@ export default function ServiceForm() {
         ? service.description
         : `${service.name} — Premium educational service at Ace Educational Consult.`;
     const url = `${window.location.origin}${window.location.pathname}`;
-    const image = service.image || `${window.location.origin}/android-chrome-512x512.png`;
+    const image =
+      service.image || `${window.location.origin}/android-chrome-512x512.png`;
 
     document.title = title;
 
@@ -70,11 +76,21 @@ export default function ServiceForm() {
     setMeta('meta[property="og:type"]', "property", "og:type", "product");
     setMeta('meta[property="og:url"]', "property", "og:url", url);
     setMeta('meta[property="og:title"]', "property", "og:title", title);
-    setMeta('meta[property="og:description"]', "property", "og:description", description);
+    setMeta(
+      'meta[property="og:description"]',
+      "property",
+      "og:description",
+      description,
+    );
     setMeta('meta[property="og:image"]', "property", "og:image", image);
     setMeta('meta[name="twitter:url"]', "name", "twitter:url", url);
     setMeta('meta[name="twitter:title"]', "name", "twitter:title", title);
-    setMeta('meta[name="twitter:description"]', "name", "twitter:description", description);
+    setMeta(
+      'meta[name="twitter:description"]',
+      "name",
+      "twitter:description",
+      description,
+    );
     setMeta('meta[name="twitter:image"]', "name", "twitter:image", image);
   }, [resolvedService]);
 
@@ -118,8 +134,7 @@ export default function ServiceForm() {
 
     const service = resolvedService;
 
-    // Save pending order to localStorage — order is NOT created in DB yet.
-    // The order will only be created after the user uploads their payment receipt.
+    // Build the pending order object
     const pendingOrder = {
       serviceId: service.id,
       service: {
@@ -134,12 +149,43 @@ export default function ServiceForm() {
       savedAt: Date.now(),
     };
 
+    const storedWaNumber = getStoredWaNumber();
+
+    if (storedWaNumber) {
+      // Already have a number — attach it and go straight to payment
+      pendingOrder.whatsappNumber = storedWaNumber;
+      try {
+        localStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(pendingOrder));
+      } catch {
+        /* ignore */
+      }
+      navigate("/payment", { state: { pendingOrder } });
+    } else {
+      // No number yet — show the modal first, hold the draft
+      setPendingOrderDraft(pendingOrder);
+      setShowWaModal(true);
+    }
+  };
+
+  const handleWaConfirm = (waNumber) => {
+    setShowWaModal(false);
+    const pendingOrder = { ...pendingOrderDraft, whatsappNumber: waNumber };
     try {
       localStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(pendingOrder));
     } catch {
-      // localStorage might be full — proceed anyway, state will carry the data
+      /* ignore */
     }
+    navigate("/payment", { state: { pendingOrder } });
+  };
 
+  const handleWaSkip = () => {
+    setShowWaModal(false);
+    const pendingOrder = { ...pendingOrderDraft };
+    try {
+      localStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(pendingOrder));
+    } catch {
+      /* ignore */
+    }
     navigate("/payment", { state: { pendingOrder } });
   };
 
@@ -337,7 +383,10 @@ export default function ServiceForm() {
     const saidNo = conditionalAnswers[field.name] === false;
 
     return (
-      <div key={index} className="space-y-3 border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+      <div
+        key={index}
+        className="space-y-3 border border-gray-100 rounded-xl p-4 bg-gray-50/50"
+      >
         <label className="block text-sm font-medium text-gray-700">
           Do you already have your {field.name}?
           {field.extraPrice ? (
@@ -350,7 +399,10 @@ export default function ServiceForm() {
           <button
             type="button"
             onClick={() => {
-              setConditionalAnswers((prev) => ({ ...prev, [field.name]: true }));
+              setConditionalAnswers((prev) => ({
+                ...prev,
+                [field.name]: true,
+              }));
             }}
             className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
               hasIt
@@ -363,7 +415,10 @@ export default function ServiceForm() {
           <button
             type="button"
             onClick={() => {
-              setConditionalAnswers((prev) => ({ ...prev, [field.name]: false }));
+              setConditionalAnswers((prev) => ({
+                ...prev,
+                [field.name]: false,
+              }));
               setForm((prev) => ({ ...prev, [field.name]: "" }));
               setFilePreviews((prev) => ({ ...prev, [field.name]: null }));
               setUploadErrors((prev) => ({ ...prev, [field.name]: null }));
@@ -386,6 +441,10 @@ export default function ServiceForm() {
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden py-24">
+      {/* WhatsApp number modal */}
+      {showWaModal && (
+        <WhatsAppModal onConfirm={handleWaConfirm} onClose={handleWaSkip} />
+      )}
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-center justify-center mb-8">
           <img src={AceLogo} alt="Ace Educational Consult" className="h-16" />
@@ -410,8 +469,8 @@ export default function ServiceForm() {
             </p>
             {extraFees > 0 && (
               <p className="text-xs text-gray-400 mt-1">
-                Base {formatNaira(baseValue)} + {formatNaira(extraFees)} for missing
-                details you don't currently have
+                Base {formatNaira(baseValue)} + {formatNaira(extraFees)} for
+                missing details you don't currently have
               </p>
             )}
           </div>
