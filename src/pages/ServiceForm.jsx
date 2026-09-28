@@ -4,6 +4,7 @@ import AceLogo from "../assets/Ace-Educational-Consult-Logo.png";
 import { uploadOrderFile } from "../lib/imageUpload";
 import { useAdmin } from "../contexts/AdminContext";
 import WhatsAppModal, { getStoredWaNumber } from "../components/WhatsAppModal";
+import AlertModal from "../components/AlertModal";
 
 const PENDING_ORDER_KEY = "ace_pending_order";
 
@@ -25,6 +26,16 @@ export default function ServiceForm() {
   const [uploading, setUploading] = useState({});
   const [uploadErrors, setUploadErrors] = useState({});
   const [conditionalAnswers, setConditionalAnswers] = useState({});
+  // Custom alert (replaces window.alert)
+  const [alertState, setAlertState] = useState({
+    open: false,
+    title: "",
+    message: "",
+    type: "warning",
+  });
+  const showAlert = (title, message, type = "warning") =>
+    setAlertState({ open: true, title, message, type });
+  const closeAlert = () => setAlertState((p) => ({ ...p, open: false }));
   // true = "Yes, I have it" (no fee) | false/undefined = "No" (fee applies)
   const [resolvedService, setResolvedService] = useState(
     location.state?.service || null,
@@ -128,7 +139,11 @@ export default function ServiceForm() {
     e.preventDefault();
 
     if (Object.values(uploading).some(Boolean)) {
-      alert("Please wait for all files to finish uploading.");
+      showAlert(
+        "Upload in progress",
+        "Please wait for all files to finish uploading.",
+        "info",
+      );
       return;
     }
 
@@ -139,7 +154,11 @@ export default function ServiceForm() {
       (f) => conditionalAnswers[f.name] === undefined,
     );
     if (unanswered) {
-      alert(`Please answer: "Do you already have your ${unanswered.name}?"`);
+      showAlert(
+        "Answer required",
+        `Please answer: "Do you already have your ${unanswered.name}?"`,
+        "warning",
+      );
       return;
     }
 
@@ -450,6 +469,13 @@ export default function ServiceForm() {
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden py-24">
+      <AlertModal
+        isOpen={alertState.open}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
       {/* WhatsApp number modal */}
       {showWaModal && (
         <WhatsAppModal onConfirm={handleWaConfirm} onClose={handleWaSkip} />
