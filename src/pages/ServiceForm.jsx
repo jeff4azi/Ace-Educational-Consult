@@ -134,6 +134,15 @@ export default function ServiceForm() {
 
     const service = resolvedService;
 
+    // Every fee question must be answered (Yes or No) before continuing
+    const unanswered = conditionalFields.find(
+      (f) => conditionalAnswers[f.name] === undefined,
+    );
+    if (unanswered) {
+      alert(`Please answer: "Do you already have your ${unanswered.name}?"`);
+      return;
+    }
+
     // Build the pending order object
     const pendingOrder = {
       serviceId: service.id,
