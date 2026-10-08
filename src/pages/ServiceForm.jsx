@@ -135,6 +135,65 @@ export default function ServiceForm() {
     }
   };
 
+  const conditionalFields = (resolvedService?.fields || []).filter(
+    (f) => f.hasFee,
+  );
+  const baseValue = resolvedService ? parsePrice(resolvedService.price) : 0;
+
+  // Build live price breakdown snapshot
+  const priceBreakdown = [];
+  if (resolvedService) {
+    priceBreakdown.push({
+      label: `Base Price (${resolvedService.name})`,
+      amount: baseValue,
+    });
+
+    (resolvedService.fields || []).forEach((field) => {
+      if (field.type === "radio") {
+        const selectedLabel = form[field.name];
+        if (selectedLabel) {
+          const matchedOpt = (field.options || []).find(
+            (o) => o.label === selectedLabel,
+          );
+          if (matchedOpt && Number(matchedOpt.price) > 0) {
+            priceBreakdown.push({
+              label: `${field.name}: ${matchedOpt.label}`,
+              amount: Number(matchedOpt.price),
+            });
+          }
+        }
+      } else if (field.type === "checkbox") {
+        const selectedLabels = Array.isArray(form[field.name])
+          ? form[field.name]
+          : [];
+        selectedLabels.forEach((label) => {
+          const matchedOpt = (field.options || []).find(
+            (o) => o.label === label,
+          );
+          if (matchedOpt && Number(matchedOpt.price) > 0) {
+            priceBreakdown.push({
+              label: `${field.name}: ${matchedOpt.label}`,
+              amount: Number(matchedOpt.price),
+            });
+          }
+        });
+      } else if (field.hasFee) {
+        const saidNo = conditionalAnswers[field.name] === false;
+        if (saidNo && Number(field.extraPrice) > 0) {
+          priceBreakdown.push({
+            label: `Missing ${field.name} fee`,
+            amount: Number(field.extraPrice),
+          });
+        }
+      }
+    });
+  }
+
+  const totalValue = priceBreakdown.reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -149,6 +208,45 @@ export default function ServiceForm() {
 
     const service = resolvedService;
 
+    // Validate required fields manually (especially checkbox and radio)
+    for (const field of service.fields || []) {
+      if (field.type === "checkbox") {
+        const selected = form[field.name];
+        if (
+          field.required &&
+          (!Array.isArray(selected) || selected.length === 0)
+        ) {
+          showAlert(
+            "Selection required",
+            `Please select at least one option for "${field.name}".`,
+            "warning",
+          );
+          return;
+        }
+      } else if (field.type === "radio") {
+        const selected = form[field.name];
+        if (field.required && !selected) {
+          showAlert(
+            "Selection required",
+            `Please select an option for "${field.name}".`,
+            "warning",
+          );
+          return;
+        }
+      } else if (field.hasFee) {
+        // Checked in conditionalFields below
+      } else if (field.required) {
+        if (!form[field.name]) {
+          showAlert(
+            "Required field",
+            `Please provide "${field.name}".`,
+            "warning",
+          );
+          return;
+        }
+      }
+    }
+
     // Every fee question must be answered (Yes or No) before continuing
     const unanswered = conditionalFields.find(
       (f) => conditionalAnswers[f.name] === undefined,
@@ -162,7 +260,7 @@ export default function ServiceForm() {
       return;
     }
 
-    // Build the pending order object
+    // Build the pending order object with snapshot breakdown
     const pendingOrder = {
       serviceId: service.id,
       service: {
@@ -174,6 +272,7 @@ export default function ServiceForm() {
       formData: form,
       finalPriceValue: totalValue,
       finalPriceDisplay: formatNaira(totalValue),
+      priceBreakdown: priceBreakdown,
       savedAt: Date.now(),
     };
 
@@ -217,16 +316,6 @@ export default function ServiceForm() {
     navigate("/payment", { state: { pendingOrder } });
   };
 
-  const conditionalFields = (resolvedService?.fields || []).filter(
-    (f) => f.hasFee,
-  );
-  const extraFees = conditionalFields.reduce((sum, f) => {
-    const saidNo = conditionalAnswers[f.name] === false;
-    return saidNo ? sum + (Number(f.extraPrice) || 0) : sum;
-  }, 0);
-  const baseValue = resolvedService ? parsePrice(resolvedService.price) : 0;
-  const totalValue = baseValue + extraFees;
-
   if (loading || resolving) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -257,6 +346,159 @@ export default function ServiceForm() {
       "w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20";
 
     switch (field.type) {
+      case "radio":
+        return (
+          <div key={index} className="space-y-2.5">
+            <label className="block text-sm font-semibold text-gray-800">
+              {field.name}
+              {field.required ? (
+                <span className="text-red-500 ml-1">*</span>
+              ) : (
+                <span className="text-xs text-gray-400 font-normal ml-1">
+                  (optional)
+                </span>
+              )}
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {(field.options || []).map((opt, optIdx) => {
+                const isSelected = form[field.name] === opt.label;
+                const optFee = Number(opt.price) || 0;
+                return (
+                  <div
+                    key={optIdx}
+                    onClick={() => handleChange(opt.label)}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      isSelected
+                        ? "border-[#4169E1] bg-blue-50/60 shadow-sm ring-1 ring-[#4169E1]/30"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                          isSelected
+                            ? "border-[#4169E1] bg-[#4169E1]"
+                            : "border-gray-300 bg-white"
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                        )}
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${
+                          isSelected
+                            ? "text-[#4169E1] font-semibold"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {opt.label}
+                      </span>
+                    </div>
+                    {optFee > 0 && (
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          isSelected
+                            ? "bg-[#4169E1] text-white"
+                            : "bg-blue-50 text-[#4169E1] border border-blue-200"
+                        }`}
+                      >
+                        +{formatNaira(optFee)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+
+      case "checkbox": {
+        const currentSelections = Array.isArray(form[field.name])
+          ? form[field.name]
+          : [];
+        const toggleCheckbox = (label) => {
+          setForm((prev) => {
+            const list = Array.isArray(prev[field.name])
+              ? [...prev[field.name]]
+              : [];
+            const exists = list.includes(label);
+            const updated = exists
+              ? list.filter((item) => item !== label)
+              : [...list, label];
+            return { ...prev, [field.name]: updated };
+          });
+        };
+
+        return (
+          <div key={index} className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-gray-800">
+                {field.name}
+                {field.required ? (
+                  <span className="text-red-500 ml-1">*</span>
+                ) : (
+                  <span className="text-xs text-gray-400 font-normal ml-1">
+                    (select all that apply)
+                  </span>
+                )}
+              </label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {(field.options || []).map((opt, optIdx) => {
+                const isChecked = currentSelections.includes(opt.label);
+                const optFee = Number(opt.price) || 0;
+                return (
+                  <div
+                    key={optIdx}
+                    onClick={() => toggleCheckbox(opt.label)}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      isChecked
+                        ? "border-[#4169E1] bg-blue-50/60 shadow-sm ring-1 ring-[#4169E1]/30"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
+                          isChecked
+                            ? "border-[#4169E1] bg-[#4169E1] text-white"
+                            : "border-gray-300 bg-white"
+                        }`}
+                      >
+                        {isChecked && (
+                          <i className="fas fa-check text-[10px]"></i>
+                        )}
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${
+                          isChecked
+                            ? "text-[#4169E1] font-semibold"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {opt.label}
+                      </span>
+                    </div>
+                    {optFee > 0 && (
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          isChecked
+                            ? "bg-[#4169E1] text-white"
+                            : "bg-blue-50 text-[#4169E1] border border-blue-200"
+                        }`}
+                      >
+                        +{formatNaira(optFee)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
       case "textarea":
         return (
           <div key={index} className="space-y-2">
@@ -494,21 +736,38 @@ export default function ServiceForm() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Complete Your Order
           </h1>
-          <p className="text-gray-600 mb-2">
+          <p className="text-gray-600 mb-4">
             Service:{" "}
             <span className="font-semibold text-[#4169E1]">{service.name}</span>
           </p>
-          <div className="mb-8">
-            <p className="text-2xl font-bold text-[#4169E1]">
-              {formatNaira(totalValue)}
-            </p>
-            {extraFees > 0 && (
-              <p className="text-xs text-gray-400 mt-1">
-                Base {formatNaira(baseValue)} + {formatNaira(extraFees)} for
-                missing details you don't currently have
+
+          {/* Pricing Box with snapshot breakdown */}
+          <div className="mb-8 p-4 bg-blue-50/40 rounded-2xl border border-blue-100">
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium text-gray-600">
+                Total Amount:
+              </span>
+              <p className="text-3xl font-extrabold text-[#4169E1]">
+                {formatNaira(totalValue)}
               </p>
+            </div>
+            {priceBreakdown.length > 1 && (
+              <div className="mt-3 pt-3 border-t border-blue-200/50 space-y-1.5 text-xs">
+                {priceBreakdown.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between text-gray-600"
+                  >
+                    <span>{item.label}</span>
+                    <span className="font-semibold text-gray-800">
+                      {formatNaira(item.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {service.fields?.map((field, index) => renderField(field, index))}
             <button

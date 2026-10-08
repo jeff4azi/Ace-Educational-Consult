@@ -557,6 +557,7 @@ export function AdminProvider({ children }) {
         user_data: order.formData,
         receipt_url: order.receiptUrl || null,
         total_price: order.totalPrice ?? null,
+        price_breakdown: order.priceBreakdown ?? null,
         whatsapp_number: order.whatsappNumber || null,
         status: "pending_verification",
       })

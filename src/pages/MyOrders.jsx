@@ -193,13 +193,15 @@ function OrderCard({ record, onRemove }) {
       })
     : null;
 
-  // Filter out URLs and data URIs from display (they're files, not text)
+  // Filter out file URLs and data URIs from display (keep text, numbers, and arrays)
   const displayData = Object.entries(record.order.user_data || {}).filter(
-    ([, v]) =>
-      v &&
-      typeof v === "string" &&
-      !v.startsWith("data:") &&
-      !v.startsWith("http"),
+    ([, v]) => {
+      if (v === undefined || v === null || v === "") return false;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === "string")
+        return !v.startsWith("data:") && !v.startsWith("http");
+      return true;
+    },
   );
 
   return (
@@ -252,7 +254,10 @@ function OrderCard({ record, onRemove }) {
           </p>
         )}
 
-        {displayData.length > 0 && (
+        {(displayData.length > 0 ||
+          record.order.total_price != null ||
+          (Array.isArray(record.order.price_breakdown) &&
+            record.order.price_breakdown.length > 0)) && (
           <>
             <button
               onClick={() => setExpanded((p) => !p)}
@@ -264,15 +269,70 @@ function OrderCard({ record, onRemove }) {
               {expanded ? "Hide details" : "View order details"}
             </button>
             {expanded && (
-              <div className="mt-3 bg-gray-50 rounded-xl p-4 space-y-2">
+              <div className="mt-3 bg-gray-50 rounded-xl p-4 space-y-2.5">
                 {displayData.map(([k, v]) => (
-                  <div key={k} className="flex justify-between gap-2 text-sm">
-                    <span className="text-gray-500 shrink-0">{k}</span>
-                    <span className="text-gray-800 font-medium text-right break-all">
-                      {v}
-                    </span>
+                  <div
+                    key={k}
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 text-sm py-1 border-b border-gray-200/50 last:border-0"
+                  >
+                    <span className="text-gray-500 shrink-0">{k}:</span>
+                    {Array.isArray(v) ? (
+                      <div className="flex flex-wrap gap-1 sm:justify-end">
+                        {v.map((item, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#4169E1] border border-blue-200"
+                          >
+                            {String(item)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-800 font-medium sm:text-right break-all">
+                        {String(v)}
+                      </span>
+                    )}
                   </div>
                 ))}
+
+                {/* Price & Snapshot Breakdown */}
+                {(record.order.total_price != null ||
+                  (Array.isArray(record.order.price_breakdown) &&
+                    record.order.price_breakdown.length > 0)) && (
+                  <div className="pt-2 mt-2 border-t border-gray-200/80">
+                    <div className="flex justify-between items-center text-sm font-semibold text-gray-900 mb-1">
+                      <span>Order Total:</span>
+                      <span className="text-[#4169E1] font-bold">
+                        ₦
+                        {Number(
+                          record.order.total_price ??
+                            (record.order.price_breakdown
+                              ? record.order.price_breakdown.reduce(
+                                  (s, i) => s + (Number(i.amount) || 0),
+                                  0,
+                                )
+                              : 0),
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                    {Array.isArray(record.order.price_breakdown) &&
+                      record.order.price_breakdown.length > 1 && (
+                        <div className="space-y-1 text-xs text-gray-500 pt-1">
+                          {record.order.price_breakdown.map((item, idx) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between items-center"
+                            >
+                              <span>{item.label}</span>
+                              <span className="font-medium text-gray-700">
+                                ₦{Number(item.amount).toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                  </div>
+                )}
               </div>
             )}
           </>

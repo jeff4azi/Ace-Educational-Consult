@@ -102,7 +102,7 @@ export default function OrdersManager() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_id, status, created_at, service_id, service:services(name)",
+          "id, order_id, status, created_at, total_price, price_breakdown, service_id, service:services(name, price)",
         )
         .eq("status", status)
         .order("created_at", { ascending: false })
@@ -122,7 +122,9 @@ export default function OrdersManager() {
   const fetchOrderDetail = async (orderId) => {
     const { data, error } = await supabase
       .from("orders")
-      .select("user_data, receipt_url, deliverable_urls, whatsapp_number")
+      .select(
+        "user_data, receipt_url, deliverable_urls, whatsapp_number, total_price, price_breakdown",
+      )
       .eq("id", orderId)
       .single();
     if (!error && data) {
@@ -135,6 +137,8 @@ export default function OrdersManager() {
                 receipt_url: data.receipt_url,
                 deliverable_urls: data.deliverable_urls ?? [],
                 whatsapp_number: data.whatsapp_number ?? null,
+                total_price: data.total_price ?? o.total_price,
+                price_breakdown: data.price_breakdown ?? o.price_breakdown,
               }
             : o,
         ),
@@ -298,13 +302,38 @@ export default function OrdersManager() {
   // ─── Field renderer ───────────────────────────────────────────────────────
 
   const renderFieldValue = (fieldName, value) => {
-    if (!value)
+    if (value === undefined || value === null || value === "")
       return (
         <div key={fieldName}>
           <span className="font-medium text-gray-700">{fieldName}:</span>
           <span className="ml-2 text-gray-400 italic">N/A</span>
         </div>
       );
+
+    if (Array.isArray(value)) {
+      return (
+        <div key={fieldName} className="space-y-1">
+          <span className="font-medium text-gray-700 block">{fieldName}:</span>
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {value.length > 0 ? (
+              value.map((item, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#4169E1] border border-blue-200"
+                >
+                  <i className="fas fa-check text-[10px] mr-1.5"></i>
+                  {String(item)}
+                </span>
+              ))
+            ) : (
+              <span className="text-gray-400 italic text-xs">
+                None selected
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     if (isImageUrl(value))
       return (
@@ -845,6 +874,50 @@ export default function OrdersManager() {
                               : Object.entries(order.user_data || {}).map(
                                   ([key, val]) => renderFieldValue(key, val),
                                 )}
+                          </div>
+
+                          {/* Price & Breakdown Snapshot */}
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Price & Breakdown
+                              </h4>
+                              <span className="text-sm font-bold text-[#4169E1]">
+                                {order.total_price != null
+                                  ? `₦${Number(order.total_price).toLocaleString()}`
+                                  : service?.price || "—"}
+                              </span>
+                            </div>
+                            {Array.isArray(order.price_breakdown) &&
+                            order.price_breakdown.length > 0 ? (
+                              <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-1.5 text-xs">
+                                {order.price_breakdown.map((item, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex justify-between items-center text-gray-600"
+                                  >
+                                    <span>{item.label}</span>
+                                    <span className="font-semibold text-gray-800">
+                                      ₦{Number(item.amount).toLocaleString()}
+                                    </span>
+                                  </div>
+                                ))}
+                                <div className="pt-2 mt-1 border-t border-gray-100 flex justify-between items-center font-bold text-gray-900 text-xs">
+                                  <span>Total:</span>
+                                  <span className="text-[#4169E1]">
+                                    ₦
+                                    {Number(
+                                      order.total_price ??
+                                        order.price_breakdown.reduce(
+                                          (s, i) =>
+                                            s + (Number(i.amount) || 0),
+                                          0,
+                                        ),
+                                    ).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
 
                           {/* WhatsApp Contact */}

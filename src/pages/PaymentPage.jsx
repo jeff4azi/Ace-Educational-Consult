@@ -93,6 +93,7 @@ export default function PaymentPage() {
         formData: pendingOrder.formData,
         receiptUrl,
         totalPrice: pendingOrder.finalPriceValue ?? null,
+        priceBreakdown: pendingOrder.priceBreakdown ?? null,
         whatsappNumber: pendingOrder.whatsappNumber ?? null,
       });
 
@@ -144,7 +145,11 @@ export default function PaymentPage() {
   const buildWhatsAppMessage = () => {
     let msg = `Hello Ace Educational Consult!\n\nI have submitted my proof of payment.\n\nOrder ID: ${createdOrderId}\nService: ${service.name}`;
     Object.entries(pendingOrder.formData || {}).forEach(([key, value]) => {
-      if (
+      if (Array.isArray(value)) {
+        if (value.length > 0) {
+          msg += `\n${key}: ${value.join(", ")}`;
+        }
+      } else if (
         value &&
         typeof value === "string" &&
         !value.startsWith("http") &&
@@ -189,17 +194,35 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {/* Service summary */}
-          <div className="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Service</p>
-              <p className="font-semibold text-gray-900 text-sm">
-                {service.name}
+          {/* Service summary with breakdown */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Service</p>
+                <p className="font-semibold text-gray-900 text-sm">
+                  {service.name}
+                </p>
+              </div>
+              <p className="text-xl font-bold text-[#4169E1]">
+                {pendingOrder.finalPriceDisplay || service.price}
               </p>
             </div>
-            <p className="text-xl font-bold text-[#4169E1]">
-              {pendingOrder.finalPriceDisplay || service.price}
-            </p>
+            {pendingOrder.priceBreakdown &&
+              pendingOrder.priceBreakdown.length > 1 && (
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-1 text-xs">
+                  {pendingOrder.priceBreakdown.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between text-gray-600"
+                    >
+                      <span className="truncate pr-2">{item.label}</span>
+                      <span className="font-semibold text-gray-800 shrink-0">
+                        ₦{Number(item.amount).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
 
           {/* Order ID — shown only after creation */}
